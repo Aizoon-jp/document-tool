@@ -30,8 +30,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog'
-import { MOCK_CLIENTS } from '../documents/mockData'
-import type { Client, Honorific, TaxCategory } from '../../types'
+import {
+  useClients,
+  useCreateClient,
+  useDeleteClient,
+  useUpdateClient,
+} from '../../hooks/useClients'
+import type {
+  Client,
+  ClientInput,
+  Honorific,
+  TaxCategory,
+} from '../../types'
 
 const clientSchema = z.object({
   name: z.string().min(1, '取引先名は必須です'),
@@ -61,6 +71,19 @@ const toFormValues = (c: Client | null): ClientFormValues => ({
   notes: c?.notes ?? '',
 })
 
+const toInput = (v: ClientFormValues): ClientInput => ({
+  name: v.name,
+  honorific: v.honorific,
+  postalCode: v.postalCode || null,
+  address: v.address || null,
+  tel: v.tel || null,
+  contactPerson: v.contactPerson || null,
+  contactDepartment: v.contactDepartment || null,
+  paymentTerms: v.paymentTerms || null,
+  defaultTaxCategory: v.defaultTaxCategory,
+  notes: v.notes || null,
+})
+
 const TAX_CATEGORY_LABEL: Record<TaxCategory, string> = {
   taxable_10: '課税10%',
   taxable_8: '課税8%（軽減）',
@@ -68,7 +91,8 @@ const TAX_CATEGORY_LABEL: Record<TaxCategory, string> = {
 }
 
 export const SettingsClientsTab = () => {
-  const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS)
+  const { data: clients = [], isLoading } = useClients()
+  const deleteMutation = useDeleteClient()
   const [editing, setEditing] = useState<Client | null>(null)
   const [isOpen, setIsOpen] = useState(false)
 
@@ -82,9 +106,17 @@ export const SettingsClientsTab = () => {
     setIsOpen(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('この取引先を削除しますか？')) return
-    setClients((prev) => prev.filter((c) => c.id !== id))
+    try {
+      await deleteMutation.mutateAsync(id)
+    } catch (e) {
+      alert(`削除に失敗しました: ${(e as Error).message}`)
+    }
+  }
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">読み込み中...</p>
   }
 
   return (
@@ -111,36 +143,47 @@ export const SettingsClientsTab = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clients.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell>{c.honorific}</TableCell>
-                <TableCell>{c.tel ?? '—'}</TableCell>
-                <TableCell>{c.paymentTerms ?? '—'}</TableCell>
-                <TableCell className="text-right">
-                  <div className="inline-flex gap-1">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => openEdit(c)}
-                      aria-label="編集"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDelete(c.id)}
-                      aria-label="削除"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+            {clients.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center text-sm text-muted-foreground"
+                >
+                  取引先が登録されていません
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              clients.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell>{c.honorific}</TableCell>
+                  <TableCell>{c.tel ?? '—'}</TableCell>
+                  <TableCell>{c.paymentTerms ?? '—'}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="inline-flex gap-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEdit(c)}
+                        aria-label="編集"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDelete(c.id)}
+                        aria-label="削除"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
@@ -161,6 +204,9 @@ type DialogProps = {
 }
 
 const ClientDialog = ({ open, onOpenChange, target }: DialogProps) => {
+  const createMutation = useCreateClient()
+  const updateMutation = useUpdateClient()
+
   const {
     register,
     handleSubmit,
@@ -181,12 +227,21 @@ const ClientDialog = ({ open, onOpenChange, target }: DialogProps) => {
     onOpenChange(v)
   }
 
-  const onSubmit = (values: ClientFormValues) => {
-    // eslint-disable-next-line no-console
-    console.log('[settings/clients] save', { id: target?.id, values })
-    alert(`取引先を${target ? '更新' : '追加'}しました（ダミー動作）`)
-    onOpenChange(false)
+  const onSubmit = async (values: ClientFormValues) => {
+    const input = toInput(values)
+    try {
+      if (target) {
+        await updateMutation.mutateAsync({ id: target.id, input })
+      } else {
+        await createMutation.mutateAsync(input)
+      }
+      onOpenChange(false)
+    } catch (e) {
+      alert(`保存に失敗しました: ${(e as Error).message}`)
+    }
   }
+
+  const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -294,7 +349,9 @@ const ClientDialog = ({ open, onOpenChange, target }: DialogProps) => {
             >
               キャンセル
             </Button>
-            <Button type="submit">保存</Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? '保存中...' : '保存'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

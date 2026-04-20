@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { History } from 'lucide-react'
 import {
   DocumentHistoryFilter,
@@ -9,59 +9,55 @@ import {
   toDocumentFilter,
 } from '../../components/documents/DocumentHistoryFilter'
 import { DocumentHistoryTable } from '../../components/documents/DocumentHistoryTable'
-import { MOCK_DOCUMENT_HISTORY } from '../../components/documents/historyMockData'
-import { MOCK_CLIENTS } from '../../components/documents/mockData'
-import { Document, DocumentFilter } from '../../types'
+import {
+  useDeleteDocument,
+  useDuplicateDocument,
+  useGeneratePdf,
+  useSearchDocuments,
+} from '../../hooks/useDocuments'
+import type { DocumentSort } from '../../types'
 
-const resolveClientName = (clientId: string, fallback: string): string => {
-  const client = MOCK_CLIENTS.find((c) => c.id === clientId)
-  return client?.name ?? fallback
-}
-
-const applyFilters = (docs: Document[], f: DocumentFilter): Document[] => {
-  const name = f.clientName?.trim().toLowerCase() ?? ''
-  return docs.filter((doc) => {
-    if (name && !doc.clientName.toLowerCase().includes(name)) return false
-    if (f.startDate && doc.issueDate < f.startDate) return false
-    if (f.endDate && doc.issueDate > f.endDate) return false
-    if (f.documentType && f.documentType !== 'all' && doc.documentType !== f.documentType) {
-      return false
-    }
-    if (f.minAmount !== undefined && doc.totalAmount < f.minAmount) return false
-    if (f.maxAmount !== undefined && doc.totalAmount > f.maxAmount) return false
-    return true
-  })
-}
+const DEFAULT_SORT: DocumentSort = { key: 'issueDate', direction: 'desc' }
 
 export default function DocumentsHistoryPage() {
   const router = useRouter()
   const [filters, setFilters] = useState<HistoryFilters>(EMPTY_FILTERS)
+  const deleteMutation = useDeleteDocument()
+  const duplicateMutation = useDuplicateDocument()
+  const pdfMutation = useGeneratePdf()
 
-  const allDocuments = useMemo<Document[]>(
-    () =>
-      MOCK_DOCUMENT_HISTORY.map((doc) => ({
-        ...doc,
-        clientName: resolveClientName(doc.clientId, doc.clientName),
-      })),
-    []
+  const filter = toDocumentFilter(filters)
+  const { data: documents = [], isLoading } = useSearchDocuments(
+    filter,
+    DEFAULT_SORT
   )
 
-  const filtered = useMemo(() => {
-    const result = applyFilters(allDocuments, toDocumentFilter(filters))
-    // 発行日降順
-    return [...result].sort((a, b) => b.issueDate.localeCompare(a.issueDate))
-  }, [allDocuments, filters])
-
   const handleRowClick = (id: string) => router.push(`/documents/${id}`)
-  const handleDuplicate = (id: string) => router.push(`/documents/new?from=${id}`)
-  const handleDownloadPdf = (id: string) => {
-    // TODO: IPC 実装フェーズで置き換え
-    console.log('[history] download pdf', id)
+
+  const handleDuplicate = async (id: string) => {
+    try {
+      const created = await duplicateMutation.mutateAsync(id)
+      router.push(`/documents/${created.id}`)
+    } catch (e) {
+      alert(`複製に失敗しました: ${(e as Error).message}`)
+    }
   }
-  const handleDelete = (id: string) => {
-    // 将来 AlertDialog に差し替え予定
-    if (window.confirm('この書類を削除しますか？この操作は取り消せません。')) {
-      console.log('[history] delete', id)
+
+  const handleDownloadPdf = async (id: string) => {
+    try {
+      const { filePath } = await pdfMutation.mutateAsync(id)
+      alert(`PDFを生成しました:\n${filePath}`)
+    } catch (e) {
+      alert(`PDF生成に失敗しました: ${(e as Error).message}`)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('この書類を削除しますか？この操作は取り消せません。')) return
+    try {
+      await deleteMutation.mutateAsync(id)
+    } catch (e) {
+      alert(`削除に失敗しました: ${(e as Error).message}`)
     }
   }
 
@@ -89,12 +85,16 @@ export default function DocumentsHistoryPage() {
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            {allDocuments.length}件中 {filtered.length}件を表示
+            {isLoading ? '読み込み中...' : `${documents.length}件を表示`}
           </span>
           <span className="text-xs">並び順: 発行日（降順）</span>
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="rounded-lg border border-dashed bg-card p-12 text-center">
+            <p className="text-sm text-muted-foreground">読み込み中...</p>
+          </div>
+        ) : documents.length === 0 ? (
           <div className="rounded-lg border border-dashed bg-card p-12 text-center">
             <p className="text-sm font-medium">該当する書類がありません</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -103,7 +103,7 @@ export default function DocumentsHistoryPage() {
           </div>
         ) : (
           <DocumentHistoryTable
-            documents={filtered}
+            documents={documents}
             onRowClick={handleRowClick}
             onDuplicate={handleDuplicate}
             onDownloadPdf={handleDownloadPdf}

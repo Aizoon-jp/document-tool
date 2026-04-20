@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FileDown, Save, X } from 'lucide-react'
@@ -26,13 +26,9 @@ import {
 } from '../../components/ui/select'
 import {
   DOCUMENT_TYPE_LABEL,
+  DocumentDraft,
   DocumentType,
 } from '../../types'
-import {
-  MOCK_CLIENTS,
-  MOCK_ITEMS,
-  MOCK_STAMPS,
-} from '../../components/documents/mockData'
 import {
   documentFormSchema,
   DocumentFormValues,
@@ -41,10 +37,18 @@ import {
   calcLine,
   calcWithholdingTax,
   formatCurrency,
-  generateDocumentNumber,
 } from '../../components/documents/utils'
 import { DocumentPreview } from '../../components/documents/DocumentPreview'
 import { DocumentLinesField } from '../../components/documents/DocumentLinesField'
+import { useClients } from '../../hooks/useClients'
+import { useItems } from '../../hooks/useItems'
+import { useStamps } from '../../hooks/useStamps'
+import {
+  useCreateDocument,
+  useGeneratePdf,
+  useNextDocumentNumber,
+} from '../../hooks/useDocuments'
+import { getNextDocumentNumber } from '../../services/api/documents'
 
 const DOCUMENT_TYPES: DocumentType[] = [
   'invoice',
@@ -63,7 +67,7 @@ const buildDefaults = (type: DocumentType): DocumentFormValues => ({
   documentType: type,
   clientId: '',
   issueDate: todayIso(),
-  documentNumber: generateDocumentNumber(type, todayIso()),
+  documentNumber: '',
   detailMode: 'direct',
   lines: [
     {
@@ -84,7 +88,7 @@ const buildDefaults = (type: DocumentType): DocumentFormValues => ({
     showRemarks: false,
     showBankInfo: type === 'invoice' || type === 'payment_request',
   },
-  stampIds: MOCK_STAMPS.filter((s) => s.isDefault).map((s) => s.id),
+  stampIds: [],
   remarks: '',
 })
 
@@ -96,10 +100,30 @@ const OPTION_LABELS: Record<keyof DocumentFormValues['options'], string> = {
   showBankInfo: '振込先情報を表示',
 }
 
+const toDraft = (v: DocumentFormValues): DocumentDraft => ({
+  documentType: v.documentType,
+  documentNumber: v.documentNumber,
+  issueDate: v.issueDate,
+  clientId: v.clientId,
+  detailMode: v.detailMode,
+  lines: v.lines,
+  externalAmount: Number(v.externalAmount) || 0,
+  options: v.options,
+  stampIds: v.stampIds,
+  remarks: v.remarks,
+})
+
 export default function NewDocumentPage() {
   const router = useRouter()
   const rawType = router.query.type
   const initialType: DocumentType = isDocumentType(rawType) ? rawType : 'invoice'
+
+  const { data: clients = [] } = useClients()
+  const { data: items = [] } = useItems()
+  const { data: stamps = [] } = useStamps()
+  const createMutation = useCreateDocument()
+  const pdfMutation = useGeneratePdf()
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const form = useForm<DocumentFormValues>({
     resolver: zodResolver(documentFormSchema),
@@ -108,14 +132,25 @@ export default function NewDocumentPage() {
   })
   const { control, register, setValue, handleSubmit, watch } = form
 
-  // URL の type クエリが変わったら追従
+  const currentType = watch('documentType')
+  const { data: nextNumber } = useNextDocumentNumber(currentType)
+
+  useEffect(() => {
+    if (nextNumber && !watch('documentNumber')) {
+      setValue('documentNumber', nextNumber.formatted)
+    }
+  }, [nextNumber, setValue, watch])
+
+  useEffect(() => {
+    const defaults = stamps.filter((s) => s.isDefault).map((s) => s.id)
+    if (defaults.length > 0 && watch('stampIds').length === 0) {
+      setValue('stampIds', defaults)
+    }
+  }, [stamps, setValue, watch])
+
   useEffect(() => {
     if (isDocumentType(rawType) && rawType !== watch('documentType')) {
       setValue('documentType', rawType)
-      setValue(
-        'documentNumber',
-        generateDocumentNumber(rawType, watch('issueDate'))
-      )
       setValue(
         'options.showBankInfo',
         rawType === 'invoice' || rawType === 'payment_request'
@@ -127,15 +162,14 @@ export default function NewDocumentPage() {
   const values = useWatch({ control }) as DocumentFormValues
 
   const selectedClient = useMemo(
-    () => MOCK_CLIENTS.find((c) => c.id === values.clientId) ?? null,
-    [values.clientId]
+    () => clients.find((c) => c.id === values.clientId) ?? null,
+    [values.clientId, clients]
   )
   const selectedStamps = useMemo(
-    () => MOCK_STAMPS.filter((s) => values.stampIds?.includes(s.id)),
-    [values.stampIds]
+    () => stamps.filter((s) => values.stampIds?.includes(s.id)),
+    [values.stampIds, stamps]
   )
 
-  // 合計の計算（左ペインのサマリー表示用）
   const { subtotal, taxAmount, withholdingTax, total } = useMemo(() => {
     const ls = values.lines ?? []
     const sub =
@@ -172,17 +206,32 @@ export default function NewDocumentPage() {
     return { subtotal: sub, taxAmount: tax, withholdingTax: wh, total: sub + tax - wh }
   }, [values])
 
-  const onSubmit = (data: DocumentFormValues) => {
-    // Phase 4 ではまだIPC未接続。ダミー動作
-    // eslint-disable-next-line no-console
-    console.log('PDF生成', data)
-    alert('PDF生成（仮）：コンソールに内容を出力しました')
+  const onSubmit = async (data: DocumentFormValues) => {
+    setIsProcessing(true)
+    try {
+      const doc = await createMutation.mutateAsync(toDraft(data))
+      await pdfMutation.mutateAsync(doc.id)
+      alert(`PDFを生成しました（書類番号: ${doc.documentNumber}）`)
+      router.push(`/documents/${doc.id}`)
+    } catch (e) {
+      alert(`作成に失敗しました: ${(e as Error).message}`)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
-  const onSaveDraft = () => {
-    // eslint-disable-next-line no-console
-    console.log('下書き保存', form.getValues())
-    alert('下書き保存（仮）：コンソールに内容を出力しました')
+  const onSaveDraft = async () => {
+    const data = form.getValues()
+    setIsProcessing(true)
+    try {
+      const doc = await createMutation.mutateAsync(toDraft(data))
+      alert(`下書き保存しました（書類番号: ${doc.documentNumber}）`)
+      router.push(`/documents/${doc.id}`)
+    } catch (e) {
+      alert(`保存に失敗しました: ${(e as Error).message}`)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   const toggleStamp = (id: string) => {
@@ -194,16 +243,18 @@ export default function NewDocumentPage() {
     )
   }
 
-  const handleChangeDocumentType = (next: DocumentType) => {
+  const handleChangeDocumentType = async (next: DocumentType) => {
     setValue('documentType', next)
-    setValue(
-      'documentNumber',
-      generateDocumentNumber(next, form.getValues('issueDate'))
-    )
     setValue(
       'options.showBankInfo',
       next === 'invoice' || next === 'payment_request'
     )
+    try {
+      const n = await getNextDocumentNumber(next)
+      setValue('documentNumber', n.formatted)
+    } catch {
+      setValue('documentNumber', '')
+    }
     router.replace(
       { pathname: router.pathname, query: { type: next } },
       undefined,
@@ -235,23 +286,28 @@ export default function NewDocumentPage() {
                 type="button"
                 variant="ghost"
                 onClick={() => router.back()}
+                disabled={isProcessing}
               >
                 <X className="mr-1 h-4 w-4" />
                 キャンセル
               </Button>
-              <Button type="button" variant="outline" onClick={onSaveDraft}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onSaveDraft}
+                disabled={isProcessing}
+              >
                 <Save className="mr-1 h-4 w-4" />
                 下書き保存
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={isProcessing}>
                 <FileDown className="mr-1 h-4 w-4" />
-                PDF生成
+                {isProcessing ? '処理中...' : 'PDF生成'}
               </Button>
             </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
-            {/* 左：フォーム */}
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -284,18 +340,27 @@ export default function NewDocumentPage() {
                     <Select
                       value={values.clientId}
                       onValueChange={(v) =>
-                        setValue('clientId', v, { shouldDirty: true, shouldValidate: true })
+                        setValue('clientId', v, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
                       }
                     >
                       <SelectTrigger id="clientId">
                         <SelectValue placeholder="取引先を選択" />
                       </SelectTrigger>
                       <SelectContent>
-                        {MOCK_CLIENTS.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} {c.honorific}
-                          </SelectItem>
-                        ))}
+                        {clients.length === 0 ? (
+                          <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                            取引先が登録されていません
+                          </div>
+                        ) : (
+                          clients.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name} {c.honorific}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -347,7 +412,7 @@ export default function NewDocumentPage() {
                   <Separator />
 
                   {values.detailMode === 'direct' ? (
-                    <DocumentLinesField control={control} items={MOCK_ITEMS} />
+                    <DocumentLinesField control={control} items={items} />
                   ) : (
                     <div className="space-y-1.5">
                       <Label htmlFor="externalAmount">合計金額（税抜）</Label>
@@ -424,28 +489,34 @@ export default function NewDocumentPage() {
                   <CardTitle className="text-base">印影</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
-                  {MOCK_STAMPS.map((s) => {
-                    const active = values.stampIds?.includes(s.id)
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => toggleStamp(s.id)}
-                        className={`rounded-md border px-3 py-2 text-sm transition-colors ${
-                          active
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-input hover:bg-accent'
-                        }`}
-                      >
-                        {s.name}
-                        {s.isDefault && (
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            （既定）
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
+                  {stamps.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      印影が登録されていません。
+                    </p>
+                  ) : (
+                    stamps.map((s) => {
+                      const active = values.stampIds?.includes(s.id)
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => toggleStamp(s.id)}
+                          className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+                            active
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-input hover:bg-accent'
+                          }`}
+                        >
+                          {s.name}
+                          {s.isDefault && (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              （既定）
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })
+                  )}
                 </CardContent>
               </Card>
 
@@ -465,7 +536,6 @@ export default function NewDocumentPage() {
               )}
             </div>
 
-            {/* 右：プレビュー */}
             <div className="lg:sticky lg:top-6 lg:self-start">
               <Card>
                 <CardHeader>

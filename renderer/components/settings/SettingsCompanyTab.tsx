@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select'
-import type { BankAccountType, Company } from '../../types'
+import { useCompany, useUpdateCompany } from '../../hooks/useCompany'
+import type { BankAccountType, Company, CompanyInput } from '../../types'
 
 const companySchema = z.object({
   name: z.string().min(1, '会社名は必須です'),
@@ -41,63 +43,94 @@ const companySchema = z.object({
 
 type CompanyFormValues = z.infer<typeof companySchema>
 
-const DEFAULT_COMPANY: Company = {
-  id: 'co1',
-  name: '株式会社サンプル',
-  tradeName: 'Sample Inc.',
-  postalCode: '150-0001',
-  address: '東京都渋谷区神宮前1-1-1 サンプルビル5F',
-  tel: '03-0000-0000',
-  fax: '03-0000-0001',
-  email: 'info@sample.co.jp',
-  website: 'https://sample.co.jp',
-  representativeName: '山田 太郎',
-  invoiceNumber: 'T1234567890123',
-  bankName: 'みずほ銀行',
-  bankBranch: '渋谷支店',
+const EMPTY_FORM: CompanyFormValues = {
+  name: '',
+  tradeName: '',
+  postalCode: '',
+  address: '',
+  tel: '',
+  fax: '',
+  email: '',
+  website: '',
+  representativeName: '',
+  invoiceNumber: '',
+  bankName: '',
+  bankBranch: '',
   bankAccountType: 'ordinary',
-  bankAccountNumber: '1234567',
-  bankAccountHolderKana: 'カブシキガイシャサンプル',
-  createdAt: '2026-01-01T00:00:00Z',
-  updatedAt: '2026-01-01T00:00:00Z',
+  bankAccountNumber: '',
+  bankAccountHolderKana: '',
 }
 
-const toFormValues = (c: Company): CompanyFormValues => ({
-  name: c.name,
-  tradeName: c.tradeName ?? '',
-  postalCode: c.postalCode ?? '',
-  address: c.address ?? '',
-  tel: c.tel ?? '',
-  fax: c.fax ?? '',
-  email: c.email ?? '',
-  website: c.website ?? '',
-  representativeName: c.representativeName ?? '',
-  invoiceNumber: c.invoiceNumber ?? '',
-  bankName: c.bankName ?? '',
-  bankBranch: c.bankBranch ?? '',
-  bankAccountType: (c.bankAccountType ?? 'ordinary') as BankAccountType,
-  bankAccountNumber: c.bankAccountNumber ?? '',
-  bankAccountHolderKana: c.bankAccountHolderKana ?? '',
+const toFormValues = (c: Company | null | undefined): CompanyFormValues => {
+  if (!c) return EMPTY_FORM
+  return {
+    name: c.name,
+    tradeName: c.tradeName ?? '',
+    postalCode: c.postalCode ?? '',
+    address: c.address ?? '',
+    tel: c.tel ?? '',
+    fax: c.fax ?? '',
+    email: c.email ?? '',
+    website: c.website ?? '',
+    representativeName: c.representativeName ?? '',
+    invoiceNumber: c.invoiceNumber ?? '',
+    bankName: c.bankName ?? '',
+    bankBranch: c.bankBranch ?? '',
+    bankAccountType: (c.bankAccountType ?? 'ordinary') as BankAccountType,
+    bankAccountNumber: c.bankAccountNumber ?? '',
+    bankAccountHolderKana: c.bankAccountHolderKana ?? '',
+  }
+}
+
+const toInput = (v: CompanyFormValues): CompanyInput => ({
+  name: v.name,
+  tradeName: v.tradeName || null,
+  postalCode: v.postalCode || null,
+  address: v.address || null,
+  tel: v.tel || null,
+  fax: v.fax || null,
+  email: v.email || null,
+  website: v.website || null,
+  representativeName: v.representativeName || null,
+  invoiceNumber: v.invoiceNumber || null,
+  bankName: v.bankName || null,
+  bankBranch: v.bankBranch || null,
+  bankAccountType: v.bankAccountType,
+  bankAccountNumber: v.bankAccountNumber || null,
+  bankAccountHolderKana: v.bankAccountHolderKana || null,
 })
 
 export const SettingsCompanyTab = () => {
+  const { data: company, isLoading } = useCompany()
+  const updateMutation = useUpdateCompany()
+
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    reset,
+    formState: { errors, isDirty },
   } = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
-    defaultValues: toFormValues(DEFAULT_COMPANY),
+    defaultValues: EMPTY_FORM,
   })
+
+  useEffect(() => {
+    if (company !== undefined) {
+      reset(toFormValues(company))
+    }
+  }, [company, reset])
 
   const accountType = watch('bankAccountType')
 
-  const onSubmit = (values: CompanyFormValues) => {
-    // eslint-disable-next-line no-console
-    console.log('[settings/company] save', values)
-    alert('会社基本情報を保存しました（ダミー動作）')
+  const onSubmit = async (values: CompanyFormValues) => {
+    await updateMutation.mutateAsync(toInput(values))
+    alert('会社基本情報を保存しました')
+  }
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">読み込み中...</p>
   }
 
   return (
@@ -185,9 +218,9 @@ export const SettingsCompanyTab = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button type="submit">
+        <Button type="submit" disabled={updateMutation.isPending || !isDirty}>
           <Save className="h-4 w-4" />
-          保存
+          {updateMutation.isPending ? '保存中...' : '保存'}
         </Button>
       </div>
     </form>

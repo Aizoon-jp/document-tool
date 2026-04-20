@@ -31,8 +31,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog'
-import { MOCK_ITEMS } from '../documents/mockData'
-import type { Item, TaxRate } from '../../types'
+import {
+  useCreateItem,
+  useDeleteItem,
+  useItems,
+  useUpdateItem,
+} from '../../hooks/useItems'
+import type { Item, ItemInput, TaxRate } from '../../types'
 
 const itemSchema = z.object({
   name: z.string().min(1, '品目名は必須です'),
@@ -58,6 +63,16 @@ const toFormValues = (i: Item | null): ItemFormValues => ({
   notes: i?.notes ?? '',
 })
 
+const toInput = (v: ItemFormValues): ItemInput => ({
+  name: v.name,
+  unitPrice: v.unitPrice,
+  unit: v.unit,
+  taxRate: v.taxRate as TaxRate,
+  isReducedTaxRate: v.isReducedTaxRate,
+  defaultQuantity: v.defaultQuantity,
+  notes: v.notes || null,
+})
+
 const formatYen = (n: number) =>
   new Intl.NumberFormat('ja-JP', {
     style: 'currency',
@@ -66,7 +81,8 @@ const formatYen = (n: number) =>
   }).format(n)
 
 export const SettingsItemsTab = () => {
-  const [items, setItems] = useState<Item[]>(MOCK_ITEMS)
+  const { data: items = [], isLoading } = useItems()
+  const deleteMutation = useDeleteItem()
   const [editing, setEditing] = useState<Item | null>(null)
   const [isOpen, setIsOpen] = useState(false)
 
@@ -80,9 +96,17 @@ export const SettingsItemsTab = () => {
     setIsOpen(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('この品目を削除しますか？')) return
-    setItems((prev) => prev.filter((i) => i.id !== id))
+    try {
+      await deleteMutation.mutateAsync(id)
+    } catch (e) {
+      alert(`削除に失敗しました: ${(e as Error).message}`)
+    }
+  }
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">読み込み中...</p>
   }
 
   return (
@@ -110,47 +134,58 @@ export const SettingsItemsTab = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((i) => (
-              <TableRow key={i.id}>
-                <TableCell className="font-medium">{i.name}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatYen(i.unitPrice)}
-                </TableCell>
-                <TableCell>{i.unit}</TableCell>
-                <TableCell>{i.taxRate}%</TableCell>
-                <TableCell>
-                  {i.isReducedTaxRate ? (
-                    <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-                      軽減
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="inline-flex gap-1">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => openEdit(i)}
-                      aria-label="編集"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDelete(i.id)}
-                      aria-label="削除"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+            {items.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="text-center text-sm text-muted-foreground"
+                >
+                  品目が登録されていません
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              items.map((i) => (
+                <TableRow key={i.id}>
+                  <TableCell className="font-medium">{i.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatYen(i.unitPrice)}
+                  </TableCell>
+                  <TableCell>{i.unit}</TableCell>
+                  <TableCell>{i.taxRate}%</TableCell>
+                  <TableCell>
+                    {i.isReducedTaxRate ? (
+                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                        軽減
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="inline-flex gap-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEdit(i)}
+                        aria-label="編集"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDelete(i.id)}
+                        aria-label="削除"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
@@ -171,6 +206,9 @@ type DialogProps = {
 }
 
 const ItemDialog = ({ open, onOpenChange, target }: DialogProps) => {
+  const createMutation = useCreateItem()
+  const updateMutation = useUpdateItem()
+
   const {
     register,
     handleSubmit,
@@ -191,12 +229,21 @@ const ItemDialog = ({ open, onOpenChange, target }: DialogProps) => {
     onOpenChange(v)
   }
 
-  const onSubmit = (values: ItemFormValues) => {
-    // eslint-disable-next-line no-console
-    console.log('[settings/items] save', { id: target?.id, values })
-    alert(`品目を${target ? '更新' : '追加'}しました（ダミー動作）`)
-    onOpenChange(false)
+  const onSubmit = async (values: ItemFormValues) => {
+    const input = toInput(values)
+    try {
+      if (target) {
+        await updateMutation.mutateAsync({ id: target.id, input })
+      } else {
+        await createMutation.mutateAsync(input)
+      }
+      onOpenChange(false)
+    } catch (e) {
+      alert(`保存に失敗しました: ${(e as Error).message}`)
+    }
   }
+
+  const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -285,7 +332,9 @@ const ItemDialog = ({ open, onOpenChange, target }: DialogProps) => {
             >
               キャンセル
             </Button>
-            <Button type="submit">保存</Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? '保存中...' : '保存'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

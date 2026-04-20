@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Save } from 'lucide-react'
 import {
   Card,
@@ -12,6 +12,10 @@ import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Switch } from '../ui/switch'
 import { Textarea } from '../ui/textarea'
+import {
+  useDocumentSettings,
+  useUpdateDocumentSetting,
+} from '../../hooks/useDocumentSettings'
 import {
   DOCUMENT_TYPE_LABEL,
   type DocumentOptions,
@@ -27,14 +31,6 @@ const DOCUMENT_TYPES: DocumentType[] = [
   'delivery_note',
 ]
 
-const DEFAULT_OPTIONS: DocumentOptions = {
-  includeTax: true,
-  reducedTaxRate: true,
-  withholdingTax: false,
-  showRemarks: true,
-  showBankInfo: true,
-}
-
 const OPTION_LABEL: Record<keyof DocumentOptions, string> = {
   includeTax: '消費税を計算',
   reducedTaxRate: '軽減税率を区別表示',
@@ -43,55 +39,30 @@ const OPTION_LABEL: Record<keyof DocumentOptions, string> = {
   showBankInfo: '振込先を表示',
 }
 
-const buildInitial = (): Record<DocumentType, DocumentSetting> => {
-  const now = '2026-01-01T00:00:00Z'
-  const baseByType: Record<DocumentType, Partial<DocumentSetting>> = {
-    invoice: {
-      numberFormat: 'INV-{YYYY}-{MM}-{seq:3}',
-      defaultRemarks: 'お振込手数料はお客様にてご負担ください。',
-    },
-    receipt: {
-      numberFormat: 'RCP-{YYYY}-{MM}-{seq:3}',
-      defaultRemarks: '上記、正に領収いたしました。',
-    },
-    quote: {
-      numberFormat: 'QT-{YYYY}-{MM}-{seq:3}',
-      defaultRemarks: 'お見積有効期限：発行日より30日間',
-    },
-    payment_request: {
-      numberFormat: 'PR-{YYYY}-{MM}-{seq:3}',
-      defaultRemarks: '下記口座へお振込をお願いいたします。',
-    },
-    delivery_note: {
-      numberFormat: 'DN-{YYYY}-{MM}-{seq:3}',
-      defaultRemarks: '上記の通り納品いたしました。',
-    },
+const toMap = (
+  list: DocumentSetting[]
+): Record<DocumentType, DocumentSetting> => {
+  const map = {} as Record<DocumentType, DocumentSetting>
+  for (const s of list) {
+    map[s.documentType] = s
   }
-  return DOCUMENT_TYPES.reduce<Record<DocumentType, DocumentSetting>>(
-    (acc, t) => {
-      acc[t] = {
-        id: `ds-${t}`,
-        documentType: t,
-        numberFormat: baseByType[t].numberFormat ?? '',
-        defaultOptions: { ...DEFAULT_OPTIONS },
-        defaultRemarks: baseByType[t].defaultRemarks ?? null,
-        createdAt: now,
-        updatedAt: now,
-      }
-      return acc
-    },
-    {} as Record<DocumentType, DocumentSetting>
-  )
+  return map
 }
 
 export const SettingsDocumentTypesTab = () => {
-  const [settings, setSettings] =
-    useState<Record<DocumentType, DocumentSetting>>(buildInitial)
+  const { data: list = [], isLoading } = useDocumentSettings()
+  const updateMutation = useUpdateDocumentSetting()
+  const [settings, setSettings] = useState<
+    Record<DocumentType, DocumentSetting>
+  >({} as Record<DocumentType, DocumentSetting>)
 
-  const update = (
-    type: DocumentType,
-    patch: Partial<DocumentSetting>
-  ) => {
+  useEffect(() => {
+    if (list.length > 0) {
+      setSettings(toMap(list))
+    }
+  }, [list])
+
+  const update = (type: DocumentType, patch: Partial<DocumentSetting>) => {
     setSettings((prev) => ({
       ...prev,
       [type]: { ...prev[type], ...patch },
@@ -112,18 +83,34 @@ export const SettingsDocumentTypesTab = () => {
     }))
   }
 
-  const handleSave = (type: DocumentType) => {
-    // eslint-disable-next-line no-console
-    console.log('[settings/document-types] save', settings[type])
-    alert(
-      `${DOCUMENT_TYPE_LABEL[type]}の設定を保存しました（ダミー動作）`
-    )
+  const handleSave = async (type: DocumentType) => {
+    const s = settings[type]
+    if (!s) return
+    try {
+      await updateMutation.mutateAsync({
+        type,
+        input: {
+          documentType: s.documentType,
+          numberFormat: s.numberFormat,
+          defaultOptions: s.defaultOptions,
+          defaultRemarks: s.defaultRemarks,
+        },
+      })
+      alert(`${DOCUMENT_TYPE_LABEL[type]}の設定を保存しました`)
+    } catch (e) {
+      alert(`保存に失敗しました: ${(e as Error).message}`)
+    }
+  }
+
+  if (isLoading || Object.keys(settings).length === 0) {
+    return <p className="text-sm text-muted-foreground">読み込み中...</p>
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {DOCUMENT_TYPES.map((type) => {
         const s = settings[type]
+        if (!s) return null
         return (
           <Card key={type}>
             <CardHeader>
@@ -185,9 +172,10 @@ export const SettingsDocumentTypesTab = () => {
                   type="button"
                   size="sm"
                   onClick={() => handleSave(type)}
+                  disabled={updateMutation.isPending}
                 >
                   <Save className="h-4 w-4" />
-                  保存
+                  {updateMutation.isPending ? '保存中...' : '保存'}
                 </Button>
               </div>
             </CardContent>

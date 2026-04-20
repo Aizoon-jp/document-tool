@@ -18,7 +18,11 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui/card'
-import { DOCUMENT_TYPE_LABEL, Document, DocumentType, MonthlySummary } from '../types'
+import { DOCUMENT_TYPE_LABEL, DocumentType } from '../types'
+import {
+  useMonthlySummary,
+  useRecentDocuments,
+} from '../hooks/useDocuments'
 
 const QUICK_CREATE: { type: DocumentType; icon: LucideIcon }[] = [
   { type: 'invoice', icon: FileText },
@@ -28,78 +32,28 @@ const QUICK_CREATE: { type: DocumentType; icon: LucideIcon }[] = [
   { type: 'delivery_note', icon: Truck },
 ]
 
-type RecentDocument = Pick<
-  Document,
-  'id' | 'issueDate' | 'documentType' | 'clientName' | 'documentNumber' | 'totalAmount'
->
-
-const RECENT_DOCUMENTS: RecentDocument[] = [
-  {
-    id: '1',
-    issueDate: '2026-04-18',
-    documentType: 'invoice',
-    clientName: '株式会社サンプル',
-    documentNumber: '2026-04-003',
-    totalAmount: 1320000,
-  },
-  {
-    id: '2',
-    issueDate: '2026-04-15',
-    documentType: 'quote',
-    clientName: '有限会社テスト商事',
-    documentNumber: 'Q-2026-04-002',
-    totalAmount: 480000,
-  },
-  {
-    id: '3',
-    issueDate: '2026-04-12',
-    documentType: 'receipt',
-    clientName: '合同会社アイゾーン',
-    documentNumber: 'R-2026-04-005',
-    totalAmount: 88000,
-  },
-  {
-    id: '4',
-    issueDate: '2026-04-08',
-    documentType: 'delivery_note',
-    clientName: '株式会社サンプル',
-    documentNumber: 'D-2026-04-001',
-    totalAmount: 264000,
-  },
-  {
-    id: '5',
-    issueDate: '2026-04-02',
-    documentType: 'payment_request',
-    clientName: '株式会社ブルーランプ',
-    documentNumber: 'P-2026-04-001',
-    totalAmount: 550000,
-  },
-]
-
-const MONTHLY_SUMMARY: MonthlySummary = {
-  yearMonth: '2026-04',
-  totalCount: 12,
-  breakdown: {
-    invoice: 5,
-    receipt: 3,
-    quote: 2,
-    payment_request: 1,
-    delivery_note: 1,
-  },
-}
-
 const currencyFormatter = new Intl.NumberFormat('ja-JP', {
   style: 'currency',
   currency: 'JPY',
   maximumFractionDigits: 0,
 })
 
-const formatDate = (isoDate: string): string => format(new Date(isoDate), 'yyyy/MM/dd')
-const formatCurrency = (amount: number): string => currencyFormatter.format(amount)
+const formatDate = (isoDate: string): string =>
+  format(new Date(isoDate), 'yyyy/MM/dd')
+const formatCurrency = (amount: number): string =>
+  currencyFormatter.format(amount)
+
+const currentYearMonth = (): string => format(new Date(), 'yyyy-MM')
 
 export default function DashboardPage() {
   const router = useRouter()
   const currentMonthLabel = format(new Date(), 'yyyy年M月')
+  const yearMonth = currentYearMonth()
+
+  const { data: recent = [], isLoading: isRecentLoading } =
+    useRecentDocuments(5)
+  const { data: summary, isLoading: isSummaryLoading } =
+    useMonthlySummary(yearMonth)
 
   return (
     <>
@@ -145,68 +99,88 @@ export default function DashboardPage() {
               <CardDescription>直近5件を表示</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
-                    <th className="px-4 py-2 text-left font-medium">発行日</th>
-                    <th className="px-4 py-2 text-left font-medium">書類種別</th>
-                    <th className="px-4 py-2 text-left font-medium">取引先</th>
-                    <th className="px-4 py-2 text-left font-medium">書類番号</th>
-                    <th className="px-4 py-2 text-right font-medium">金額</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {RECENT_DOCUMENTS.map((doc) => (
-                    <tr
-                      key={doc.id}
-                      onClick={() => router.push(`/documents/${doc.id}`)}
-                      className="cursor-pointer border-b last:border-b-0 transition-colors hover:bg-accent/50"
-                    >
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {formatDate(doc.issueDate)}
-                      </td>
-                      <td className="px-4 py-3">{DOCUMENT_TYPE_LABEL[doc.documentType]}</td>
-                      <td className="px-4 py-3">{doc.clientName}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {doc.documentNumber}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium">
-                        {formatCurrency(doc.totalAmount)}
-                      </td>
+              {isRecentLoading ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  読み込み中...
+                </div>
+              ) : recent.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  書類がまだ発行されていません
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
+                      <th className="px-4 py-2 text-left font-medium">発行日</th>
+                      <th className="px-4 py-2 text-left font-medium">書類種別</th>
+                      <th className="px-4 py-2 text-left font-medium">取引先</th>
+                      <th className="px-4 py-2 text-left font-medium">書類番号</th>
+                      <th className="px-4 py-2 text-right font-medium">金額</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recent.map((doc) => (
+                      <tr
+                        key={doc.id}
+                        onClick={() => router.push(`/documents/${doc.id}`)}
+                        className="cursor-pointer border-b last:border-b-0 transition-colors hover:bg-accent/50"
+                      >
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {formatDate(doc.issueDate)}
+                        </td>
+                        <td className="px-4 py-3">
+                          {DOCUMENT_TYPE_LABEL[doc.documentType]}
+                        </td>
+                        <td className="px-4 py-3">{doc.clientName}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                          {doc.documentNumber}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium">
+                          {formatCurrency(doc.totalAmount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">
-                今月の発行件数
-              </CardTitle>
+              <CardTitle className="text-base">今月の発行件数</CardTitle>
               <CardDescription>{currentMonthLabel}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <div className="text-3xl font-semibold">{MONTHLY_SUMMARY.totalCount}</div>
-                <div className="text-xs text-muted-foreground">件発行</div>
-              </div>
-              <div className="space-y-2 border-t pt-4">
-                {(Object.keys(MONTHLY_SUMMARY.breakdown) as DocumentType[]).map((type) => (
-                  <div
-                    key={type}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-muted-foreground">
-                      {DOCUMENT_TYPE_LABEL[type]}
-                    </span>
-                    <span className="font-medium">
-                      {MONTHLY_SUMMARY.breakdown[type]}件
-                    </span>
+              {isSummaryLoading || !summary ? (
+                <p className="text-sm text-muted-foreground">読み込み中...</p>
+              ) : (
+                <>
+                  <div>
+                    <div className="text-3xl font-semibold">
+                      {summary.totalCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">件発行</div>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-2 border-t pt-4">
+                    {(Object.keys(summary.breakdown) as DocumentType[]).map(
+                      (type) => (
+                        <div
+                          key={type}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span className="text-muted-foreground">
+                            {DOCUMENT_TYPE_LABEL[type]}
+                          </span>
+                          <span className="font-medium">
+                            {summary.breakdown[type]}件
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </section>

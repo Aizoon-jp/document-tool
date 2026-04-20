@@ -20,11 +20,22 @@ import {
 import { Button } from '../../components/ui/button'
 import { Separator } from '../../components/ui/separator'
 import { DocumentPreview } from '../../components/documents/DocumentPreview'
-import { MOCK_DOCUMENT_HISTORY } from '../../components/documents/historyMockData'
-import { MOCK_CLIENTS, MOCK_STAMPS } from '../../components/documents/mockData'
 import { formatCurrency } from '../../components/documents/utils'
 import { DocumentFormValues } from '../../components/documents/schema'
-import { DOCUMENT_TYPE_LABEL, Document } from '../../types'
+import {
+  DOCUMENT_TYPE_LABEL,
+  Document,
+  DocumentLine,
+} from '../../types'
+import { useClients } from '../../hooks/useClients'
+import { useStamps } from '../../hooks/useStamps'
+import {
+  useDeleteDocument,
+  useDocument,
+  useDocumentLines,
+  useDuplicateDocument,
+  useGeneratePdf,
+} from '../../hooks/useDocuments'
 
 const formatIssueDate = (iso: string): string => {
   try {
@@ -42,85 +53,123 @@ const formatCreatedAt = (iso: string): string => {
   }
 }
 
-/** プレビュー用に DocumentFormValues へ変換。明細は totalAmount を元に 1 行だけ組み立てる。 */
-const toFormValues = (doc: Document): DocumentFormValues => {
-  const subtotalExcl = Math.round(doc.totalAmount / 1.1)
-  return {
-    documentType: doc.documentType,
-    clientId: doc.clientId,
-    issueDate: doc.issueDate,
-    documentNumber: doc.documentNumber,
-    detailMode: doc.detailMode,
-    lines: [
-      {
-        itemId: null,
-        content: `${DOCUMENT_TYPE_LABEL[doc.documentType]}業務一式`,
-        quantity: 1,
-        unit: '式',
-        unitPrice: subtotalExcl,
-        taxRate: 10,
-        isReducedTaxRate: false,
-      },
-    ],
-    externalAmount: doc.detailMode === 'external' ? subtotalExcl : 0,
-    options: doc.options,
-    stampIds: doc.stampId ? [doc.stampId] : [],
-    remarks: doc.remarks ?? '',
-  }
-}
+const toFormValues = (
+  doc: Document,
+  lines: DocumentLine[]
+): DocumentFormValues => ({
+  documentType: doc.documentType,
+  clientId: doc.clientId,
+  issueDate: doc.issueDate,
+  documentNumber: doc.documentNumber,
+  detailMode: doc.detailMode,
+  lines:
+    lines.length > 0
+      ? lines.map((l) => ({
+          itemId: null,
+          content: l.content,
+          quantity: l.quantity,
+          unit: l.unit,
+          unitPrice: l.unitPrice,
+          taxRate: l.taxRate,
+          isReducedTaxRate: l.isReducedTaxRate,
+        }))
+      : [
+          {
+            itemId: null,
+            content: `${DOCUMENT_TYPE_LABEL[doc.documentType]}業務一式`,
+            quantity: 1,
+            unit: '式',
+            unitPrice: doc.subtotal,
+            taxRate: 10,
+            isReducedTaxRate: false,
+          },
+        ],
+  externalAmount: doc.detailMode === 'external' ? doc.subtotal : 0,
+  options: doc.options,
+  stampIds: doc.stampId ? [doc.stampId] : [],
+  remarks: doc.remarks ?? '',
+})
 
 export default function DocumentDetailPage() {
   const router = useRouter()
   const rawId = router.query.id
   const id = typeof rawId === 'string' ? rawId : ''
 
-  const doc = useMemo<Document | null>(() => {
-    if (!id) return null
-    return MOCK_DOCUMENT_HISTORY.find((d) => d.id === id) ?? null
-  }, [id])
+  const { data: doc, isLoading: isDocLoading, error } = useDocument(id)
+  const { data: lines = [] } = useDocumentLines(id)
+  const { data: clients = [] } = useClients()
+  const { data: stamps = [] } = useStamps()
+
+  const deleteMutation = useDeleteDocument()
+  const duplicateMutation = useDuplicateDocument()
+  const pdfMutation = useGeneratePdf()
 
   const client = useMemo(
-    () => (doc ? MOCK_CLIENTS.find((c) => c.id === doc.clientId) ?? null : null),
-    [doc]
+    () => (doc ? clients.find((c) => c.id === doc.clientId) ?? null : null),
+    [doc, clients]
   )
 
   const previewValues = useMemo(
-    () => (doc ? toFormValues(doc) : null),
-    [doc]
+    () => (doc ? toFormValues(doc, lines) : null),
+    [doc, lines]
   )
 
   const previewStamps = useMemo(
     () =>
-      doc && doc.stampId
-        ? MOCK_STAMPS.filter((s) => s.id === doc.stampId)
-        : [],
-    [doc]
+      doc && doc.stampId ? stamps.filter((s) => s.id === doc.stampId) : [],
+    [doc, stamps]
   )
 
-  const handleRegeneratePdf = () => {
-    alert(`PDF再生成（仮）: ${doc?.documentNumber}`)
+  const handleRegeneratePdf = async () => {
+    if (!doc) return
+    try {
+      await pdfMutation.mutateAsync(doc.id)
+      alert(`PDFを再生成しました: ${doc.documentNumber}`)
+    } catch (e) {
+      alert(`PDF生成に失敗しました: ${(e as Error).message}`)
+    }
   }
 
-  const handleDuplicate = () => {
+  const handleDuplicate = async () => {
     if (!doc) return
-    router.push(`/documents/new?from=${doc.id}`)
+    try {
+      const created = await duplicateMutation.mutateAsync(doc.id)
+      router.push(`/documents/${created.id}`)
+    } catch (e) {
+      alert(`複製に失敗しました: ${(e as Error).message}`)
+    }
   }
 
   const handleReissue = () => {
     if (!doc) return
-    router.push(`/documents/new?base=${doc.id}`)
+    router.push(`/documents/new?type=${doc.documentType}`)
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!doc) return
-    if (window.confirm(`書類「${doc.documentNumber}」を削除しますか？`)) {
-      alert('削除（仮）：コンソールに出力しました')
-      // eslint-disable-next-line no-console
-      console.log('[detail] delete', doc.id)
+    if (!confirm(`書類「${doc.documentNumber}」を削除しますか？`)) return
+    try {
+      await deleteMutation.mutateAsync(doc.id)
+      router.push('/documents')
+    } catch (e) {
+      alert(`削除に失敗しました: ${(e as Error).message}`)
     }
   }
 
-  if (!doc || !previewValues) {
+  if (isDocLoading) {
+    return (
+      <>
+        <Head>
+          <title>読み込み中 — 事務ツール</title>
+        </Head>
+        <div className="py-16 text-center text-sm text-muted-foreground">
+          読み込み中...
+        </div>
+      </>
+    )
+  }
+
+  if (!doc || !previewValues || error) {
     return (
       <>
         <Head>
@@ -147,6 +196,11 @@ export default function DocumentDetailPage() {
       </>
     )
   }
+
+  const isBusy =
+    deleteMutation.isPending ||
+    duplicateMutation.isPending ||
+    pdfMutation.isPending
 
   return (
     <>
@@ -176,23 +230,26 @@ export default function DocumentDetailPage() {
                 履歴に戻る
               </Link>
             </Button>
-            <Button variant="outline" onClick={handleDuplicate}>
+            <Button
+              variant="outline"
+              onClick={handleDuplicate}
+              disabled={isBusy}
+            >
               <Copy className="mr-1 h-4 w-4" />
-              この書類を複製
+              {duplicateMutation.isPending ? '複製中...' : 'この書類を複製'}
             </Button>
             <Button variant="outline" onClick={handleReissue}>
               <Pencil className="mr-1 h-4 w-4" />
-              編集（再発行）
+              新規作成へ
             </Button>
-            <Button onClick={handleRegeneratePdf}>
+            <Button onClick={handleRegeneratePdf} disabled={isBusy}>
               <FileDown className="mr-1 h-4 w-4" />
-              PDF再生成
+              {pdfMutation.isPending ? '生成中...' : 'PDF再生成'}
             </Button>
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-          {/* 左：メタ情報 */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -232,15 +289,25 @@ export default function DocumentDetailPage() {
                   value={
                     doc.pdfFilePath ? (
                       <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                        送付済み
+                        PDF生成済み
                       </span>
                     ) : (
                       <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                        未送付
+                        PDF未生成
                       </span>
                     )
                   }
                 />
+                {doc.pdfFilePath && (
+                  <InfoRow
+                    label="PDFパス"
+                    value={
+                      <span className="font-mono text-xs break-all">
+                        {doc.pdfFilePath}
+                      </span>
+                    }
+                  />
+                )}
                 <InfoRow label="作成日時" value={formatCreatedAt(doc.createdAt)} />
                 <InfoRow label="更新日時" value={formatCreatedAt(doc.updatedAt)} />
                 {doc.remarks && (
@@ -266,15 +333,15 @@ export default function DocumentDetailPage() {
                   variant="outline"
                   className="w-full border-destructive/40 text-destructive hover:bg-destructive/10"
                   onClick={handleDelete}
+                  disabled={isBusy}
                 >
                   <Trash2 className="mr-1 h-4 w-4" />
-                  この書類を削除
+                  {deleteMutation.isPending ? '削除中...' : 'この書類を削除'}
                 </Button>
               </CardContent>
             </Card>
           </div>
 
-          {/* 右：プレビュー */}
           <div>
             <Card>
               <CardHeader>
@@ -309,13 +376,8 @@ const InfoRow = ({
 )
 
 export const getStaticPaths = async () => {
-  const knownIds = MOCK_DOCUMENT_HISTORY.map((d) => d.id)
-  // 存在しないIDアクセスでも「見つかりません」画面を表示できるよう、
-  // 代表的なセンチネルを paths に含めておく（Nextron の output:export 制約対応）
-  const fallbackIds = ['not-found', 'zzz']
-  const ids = Array.from(new Set([...knownIds, ...fallbackIds]))
   return {
-    paths: ids.map((id) => ({ params: { id } })),
+    paths: [{ params: { id: 'placeholder' } }],
     fallback: false as const,
   }
 }

@@ -22,8 +22,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog'
-import { MOCK_STAMPS } from '../documents/mockData'
-import type { Stamp } from '../../types'
+import {
+  useCreateStamp,
+  useDeleteStamp,
+  useStamps,
+} from '../../hooks/useStamps'
+import type { StampCreateInput } from '../../services/api/stamps'
 
 const stampSchema = z.object({
   name: z.string().min(1, '印影名は必須です'),
@@ -36,14 +40,30 @@ const stampSchema = z.object({
 
 type StampFormValues = z.infer<typeof stampSchema>
 
-export const SettingsStampsTab = () => {
-  const [stamps, setStamps] = useState<Stamp[]>(MOCK_STAMPS)
-  const [isOpen, setIsOpen] = useState(false)
-  const [previews, setPreviews] = useState<Record<string, string>>({})
+const readFileAsDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
 
-  const handleDelete = (id: string) => {
+export const SettingsStampsTab = () => {
+  const { data: stamps = [], isLoading } = useStamps()
+  const deleteMutation = useDeleteStamp()
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleDelete = async (id: string) => {
     if (!confirm('この印影を削除しますか？')) return
-    setStamps((prev) => prev.filter((s) => s.id !== id))
+    try {
+      await deleteMutation.mutateAsync(id)
+    } catch (e) {
+      alert(`削除に失敗しました: ${(e as Error).message}`)
+    }
+  }
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">読み込み中...</p>
   }
 
   return (
@@ -58,77 +78,68 @@ export const SettingsStampsTab = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {stamps.map((s) => (
-          <Card key={s.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{s.name}</CardTitle>
-                {s.isDefault && (
-                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                    デフォルト
-                  </span>
-                )}
-              </div>
-              <CardDescription>角印</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div
-                className="flex h-32 items-center justify-center rounded-md border border-dashed bg-muted/30"
-                style={{ opacity: s.opacity }}
-              >
-                {previews[s.id] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={previews[s.id]}
-                    alt={s.name}
-                    className="max-h-full max-w-full object-contain"
-                  />
-                ) : (
+      {stamps.length === 0 ? (
+        <div className="rounded-lg border border-dashed bg-card p-12 text-center">
+          <p className="text-sm font-medium">印影が登録されていません</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            書類に押印する角印画像を登録してください。
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {stamps.map((s) => (
+            <Card key={s.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">{s.name}</CardTitle>
+                  {s.isDefault && (
+                    <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                      デフォルト
+                    </span>
+                  )}
+                </div>
+                <CardDescription>角印</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div
+                  className="flex h-32 items-center justify-center rounded-md border border-dashed bg-muted/30"
+                  style={{ opacity: s.opacity }}
+                >
                   <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
                     <StampIcon className="h-8 w-8 opacity-40" />
-                    <span>画像未設定</span>
+                    <span>画像は書類PDFで反映されます</span>
                   </div>
-                )}
-              </div>
-              <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                <dt className="text-muted-foreground">位置 X</dt>
-                <dd className="tabular-nums">{s.defaultXMm}mm</dd>
-                <dt className="text-muted-foreground">位置 Y</dt>
-                <dd className="tabular-nums">{s.defaultYMm}mm</dd>
-                <dt className="text-muted-foreground">幅</dt>
-                <dd className="tabular-nums">{s.widthMm}mm</dd>
-                <dt className="text-muted-foreground">透明度</dt>
-                <dd className="tabular-nums">
-                  {Math.round(s.opacity * 100)}%
-                </dd>
-              </dl>
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDelete(s.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                  削除
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                </div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  <dt className="text-muted-foreground">位置 X</dt>
+                  <dd className="tabular-nums">{s.defaultXMm}mm</dd>
+                  <dt className="text-muted-foreground">位置 Y</dt>
+                  <dd className="tabular-nums">{s.defaultYMm}mm</dd>
+                  <dt className="text-muted-foreground">幅</dt>
+                  <dd className="tabular-nums">{s.widthMm}mm</dd>
+                  <dt className="text-muted-foreground">透明度</dt>
+                  <dd className="tabular-nums">
+                    {Math.round(s.opacity * 100)}%
+                  </dd>
+                </dl>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDelete(s.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                    削除
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      <StampDialog
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        onAdd={(stamp, previewUrl) => {
-          setStamps((prev) => [...prev, stamp])
-          if (previewUrl) {
-            setPreviews((prev) => ({ ...prev, [stamp.id]: previewUrl }))
-          }
-        }}
-      />
+      <StampDialog open={isOpen} onOpenChange={setIsOpen} />
     </div>
   )
 }
@@ -136,11 +147,12 @@ export const SettingsStampsTab = () => {
 type DialogProps = {
   open: boolean
   onOpenChange: (v: boolean) => void
-  onAdd: (stamp: Stamp, previewUrl: string | null) => void
 }
 
-const StampDialog = ({ open, onOpenChange, onAdd }: DialogProps) => {
+const StampDialog = ({ open, onOpenChange }: DialogProps) => {
+  const createMutation = useCreateStamp()
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const {
@@ -175,11 +187,12 @@ const StampDialog = ({ open, onOpenChange, onAdd }: DialogProps) => {
         isDefault: false,
       })
       setPreviewUrl(null)
+      setImageDataUrl(null)
     }
     onOpenChange(v)
   }
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (!['image/png', 'image/jpeg'].includes(file.type)) {
@@ -190,13 +203,16 @@ const StampDialog = ({ open, onOpenChange, onAdd }: DialogProps) => {
       alert('5MB以下のファイルを選択してください')
       return
     }
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
+    setPreviewUrl(URL.createObjectURL(file))
+    setImageDataUrl(await readFileAsDataUrl(file))
   }
 
-  const onSubmit = (values: StampFormValues) => {
-    const stamp: Stamp = {
-      id: `s-${Date.now()}`,
+  const onSubmit = async (values: StampFormValues) => {
+    if (!imageDataUrl) {
+      alert('画像ファイルを選択してください')
+      return
+    }
+    const input: StampCreateInput = {
       name: values.name,
       imagePath: '',
       defaultXMm: values.defaultXMm,
@@ -204,13 +220,14 @@ const StampDialog = ({ open, onOpenChange, onAdd }: DialogProps) => {
       widthMm: values.widthMm,
       opacity: values.opacity,
       isDefault: values.isDefault,
-      createdAt: new Date().toISOString(),
+      imageDataUrl,
     }
-    // eslint-disable-next-line no-console
-    console.log('[settings/stamps] add', stamp)
-    onAdd(stamp, previewUrl)
-    alert('印影を追加しました（ダミー動作）')
-    onOpenChange(false)
+    try {
+      await createMutation.mutateAsync(input)
+      onOpenChange(false)
+    } catch (e) {
+      alert(`追加に失敗しました: ${(e as Error).message}`)
+    }
   }
 
   return (
@@ -263,9 +280,7 @@ const StampDialog = ({ open, onOpenChange, onAdd }: DialogProps) => {
                   className="h-16 w-16 rounded-md border object-contain"
                 />
               ) : (
-                <span className="text-xs text-muted-foreground">
-                  未選択
-                </span>
+                <span className="text-xs text-muted-foreground">未選択</span>
               )}
             </div>
           </div>
@@ -321,7 +336,9 @@ const StampDialog = ({ open, onOpenChange, onAdd }: DialogProps) => {
             >
               キャンセル
             </Button>
-            <Button type="submit">追加</Button>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? '追加中...' : '追加'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
