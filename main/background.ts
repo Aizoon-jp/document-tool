@@ -2,6 +2,7 @@ import path from 'path'
 import { app, ipcMain, session } from 'electron'
 import serve from 'electron-serve'
 import { createWindow } from './helpers/create-window'
+import { closeDatabase, initDatabase } from './db/client'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -13,6 +14,8 @@ if (isProd) {
 
 ;(async () => {
   await app.whenReady()
+
+  initDatabase()
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
@@ -48,6 +51,10 @@ if (isProd) {
 
 app.on('window-all-closed', () => {
   app.quit()
+})
+
+app.on('before-quit', () => {
+  closeDatabase()
 })
 
 ipcMain.handle('app:getVersion', () => app.getVersion())

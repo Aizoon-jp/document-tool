@@ -12,7 +12,7 @@ BlueLampでの開発は以下のフローに沿って進行します。
 | **Phase 2: Git/GitHub管理** | [x] | プロジェクトリポジトリを準備し開発環境を整える |
 | **Phase 3: フロントエンド基盤** | [x] | Nextron + Next.js + Tailwind + shadcn/ui 基盤構築 |
 | **Phase 4: ページ実装** | [x] | 5ページ + 5書類テンプレートの実装 |
-| **Phase 5: 環境構築** | [ ] | better-sqlite3 + Drizzle セットアップ、初期マイグレーション |
+| **Phase 5: 環境構築** | [x] | better-sqlite3 + Drizzle セットアップ、初期マイグレーション |
 | **Phase 6: バックエンド計画** | [ ] | Electron メインプロセス（DBアクセス・PDF生成・ファイルI/O）の実装計画 |
 | **Phase 7: バックエンド実装** | [ ] | IPC経由でCRUDとPDF生成を実装 |
 | **Phase 8: API統合** | [ ] | フロントエンドとElectron IPC層の統合 |
