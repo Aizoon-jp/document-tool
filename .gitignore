@@ -1,0 +1,53 @@
+# Environment variables（機密情報保護）
+.env
+.env.local
+.env.production
+.env*.local
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Build outputs
+build/
+dist/
+.next/
+app/
+out/
+
+# Electron / Nextron
+resources/app.asar
+release/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Claude Code local
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+playwright-report/
+test-results/
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+.coverage
+
+# SQLite (local dev data)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
