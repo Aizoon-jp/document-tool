@@ -14,7 +14,7 @@ BlueLampでの開発は以下のフローに沿って進行します。
 | **Phase 4: ページ実装** | [x] | 5ページ + 5書類テンプレートの実装 |
 | **Phase 5: 環境構築** | [x] | better-sqlite3 + Drizzle セットアップ、初期マイグレーション |
 | **Phase 6: バックエンド計画** | [x] | Electron メインプロセス（DBアクセス・PDF生成・ファイルI/O）の実装計画 |
-| **Phase 7: バックエンド実装** | [ ] | IPC経由でCRUDとPDF生成を実装 |
+| **Phase 7: バックエンド実装** | [x] | IPC経由でCRUDとPDF生成を実装 |
 | **Phase 8: API統合** | [ ] | フロントエンドとElectron IPC層の統合 |
 | **Phase 9: E2Eテスト** | [ ] | 主要書類（請求書・領収書・見積書）の発行フローをE2E検証 |
 | **Phase 10: ローカル動作確認** | [ ] | アプリ起動→全書類発行→PDF生成→履歴確認の通し検証 |
@@ -45,13 +45,15 @@ BlueLampでの開発は以下のフローに沿って進行します。
 
 ## 書類テンプレート管理表
 
+Phase 7で 5書類種別共通の HTML テンプレートとして `main/pdf/htmlTemplate.ts` に実装済み（書類種別はタイトル差し替えで対応）。
+
 | ID | 書類種別 | テンプレート | 着手 | 完了 |
 |----|---------|------------|------|------|
-| T-001 | 請求書 | `invoice.tsx` | [ ] | [ ] |
-| T-002 | 領収書 | `receipt.tsx` | [ ] | [ ] |
-| T-003 | 見積書 | `quote.tsx` | [ ] | [ ] |
-| T-004 | 振込依頼書 | `payment_request.tsx` | [ ] | [ ] |
-| T-005 | 納品書 | `delivery_note.tsx` | [ ] | [ ] |
+| T-001 | 請求書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
+| T-002 | 領収書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
+| T-003 | 見積書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
+| T-004 | 振込依頼書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
+| T-005 | 納品書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
 
 ---
 
@@ -102,35 +104,35 @@ BlueLampでの開発は以下のフローに沿って進行します。
 #### スライス1-A: 会社基本情報
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1A.1 | `company:get` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1A.2 | `company:update` | U（upsert） | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 1A.1 | `company:get` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 1A.2 | `company:update` | U（upsert） | [x] | [x] | [x] | - | [x] | [ ] |
 
 #### スライス1-B: 取引先マスタ
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1B.1 | `clients:list` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1B.2 | `clients:get:{id}` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1B.3 | `clients:create` | C | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1B.4 | `clients:update:{id}` | U | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1B.5 | `clients:delete:{id}` | D | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 1B.1 | `clients:list` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 1B.2 | `clients:get:{id}` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 1B.3 | `clients:create` | C | [x] | [x] | [x] | - | [x] | [ ] |
+| 1B.4 | `clients:update:{id}` | U | [x] | [x] | [x] | - | [x] | [ ] |
+| 1B.5 | `clients:delete:{id}` | D | [x] | [x] | [x] | - | [x] | [ ] |
 
 #### スライス1-C: 品目マスタ
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1C.1 | `items:list` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1C.2 | `items:get:{id}` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1C.3 | `items:create` | C | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1C.4 | `items:update:{id}` | U | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1C.5 | `items:delete:{id}` | D | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 1C.1 | `items:list` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 1C.2 | `items:get:{id}` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 1C.3 | `items:create` | C | [x] | [x] | [x] | - | [x] | [ ] |
+| 1C.4 | `items:update:{id}` | U | [x] | [x] | [x] | - | [x] | [ ] |
+| 1C.5 | `items:delete:{id}` | D | [x] | [x] | [x] | - | [x] | [ ] |
 
 #### スライス1-D: 印影管理
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1D.1 | `stamps:list` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1D.2 | `stamps:get:{id}` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1D.3 | `stamps:create` | C + 画像保存 | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1D.4 | `stamps:update:{id}` | U + 画像差替 | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1D.5 | `stamps:delete:{id}` | D + 画像削除 | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 1D.1 | `stamps:list` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 1D.2 | `stamps:get:{id}` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 1D.3 | `stamps:create` | C + 画像保存 | [x] | [x] | [x] | - | [x] | [ ] |
+| 1D.4 | `stamps:update:{id}` | U + 画像差替 | [x] | [x] | [x] | - | [x] | [ ] |
+| 1D.5 | `stamps:delete:{id}` | D + 画像削除 | [x] | [x] | [x] | - | [x] | [ ] |
 
 ※ 画像保存先: `app.getPath('userData')/stamps/stamp_{id}.png`
 ※ 検証: MIME（PNG/JPG）/ サイズ（≤5MB）/ path.basename で `..` 拒否
@@ -138,13 +140,13 @@ BlueLampでの開発は以下のフローに沿って進行します。
 #### スライス1-E: 書類別設定
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1E.1 | `document-settings:list` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 1E.2 | `document-settings:update:{type}` | U（upsert） | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 1E.1 | `document-settings:list` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 1E.2 | `document-settings:update:{type}` | U（upsert） | [x] | [x] | [x] | - | [x] | [ ] |
 
 #### スライス2: 書類番号採番
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 2.1 | `documents:next-number:{type}` | 計算 | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 2.1 | `documents:next-number:{type}` | 計算 | [x] | [x] | [x] | - | [x] | [ ] |
 
 ※ `numberFormat`（例: `{YYYY}-{MM}-{seq:3}`）を document_settings から取得しフォーマット
 ※ 同月内の最大 sequence を documents テーブルから取得して +1
@@ -152,12 +154,12 @@ BlueLampでの開発は以下のフローに沿って進行します。
 #### スライス3: 書類CRUD
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 3.1 | `documents:create` | C + lines 一括挿入 | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 3.2 | `documents:get:{id}` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 3.3 | `documents:lines:{id}` | R | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 3.4 | `documents:update:{id}` | U + lines 差替 | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 3.5 | `documents:delete:{id}` | D（cascade） | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 3.6 | `documents:duplicate:{id}` | C（既存を複製） | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 3.1 | `documents:create` | C + lines 一括挿入 | [x] | [x] | [x] | - | [x] | [ ] |
+| 3.2 | `documents:get:{id}` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 3.3 | `documents:lines:{id}` | R | [x] | [x] | [x] | - | [x] | [ ] |
+| 3.4 | `documents:update:{id}` | U + lines 差替 | [x] | [x] | [x] | - | [x] | [ ] |
+| 3.5 | `documents:delete:{id}` | D（cascade） | [x] | [x] | [x] | - | [x] | [ ] |
+| 3.6 | `documents:duplicate:{id}` | C（既存を複製） | [x] | [x] | [x] | - | [x] | [ ] |
 
 ※ create / update / duplicate は `db.transaction()` で documents + document_lines を原子更新
 ※ subtotal / taxAmount / totalAmount / withholdingTax はバックエンド側で再計算（フロントの値は信頼しない）
@@ -165,21 +167,21 @@ BlueLampでの開発は以下のフローに沿って進行します。
 #### スライス4-A: 書類一覧・検索
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 4A.1 | `documents:list` | R（全件+並替） | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 4A.2 | `documents:list-recent` | R（最近5件） | [ ] | [ ] | [ ] | - | [ ] | [ ] |
-| 4A.3 | `documents:search` | R（DocumentFilter） | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 4A.1 | `documents:list` | R（全件+並替） | [x] | [x] | [x] | - | [x] | [ ] |
+| 4A.2 | `documents:list-recent` | R（最近5件） | [x] | [x] | [x] | - | [x] | [ ] |
+| 4A.3 | `documents:search` | R（DocumentFilter） | [x] | [x] | [x] | - | [x] | [ ] |
 
 ※ clients との JOIN で clientName を返却（Document型に合わせる）
 
 #### スライス4-B: 月次サマリ
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 4B.1 | `documents:monthly-summary` | 集計 | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 4B.1 | `documents:monthly-summary` | 集計 | [x] | [x] | [x] | - | [x] | [ ] |
 
 #### スライス5: PDF生成
 | タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
 |--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 5.1 | `documents:generate-pdf:{id}` | PDF出力 | [ ] | [ ] | [ ] | - | [ ] | [ ] |
+| 5.1 | `documents:generate-pdf:{id}` | PDF出力 | [x] | [x] | [x] | - | [x] | [ ] |
 
 ※ 非表示 BrowserWindow で `renderer/templates/{type}.tsx` を描画 → `webContents.printToPDF({ pageSize: 'A4', marginsType: 0 })`
 ※ Noto Sans JP を `resources/fonts/` から `@font-face` 読込

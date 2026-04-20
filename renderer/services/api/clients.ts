@@ -13,12 +13,13 @@ export async function listClients(): Promise<Client[]> {
 
 /**
  * @API_INTEGRATION
- * IPC: clients:get:${id} (API_PATHS.clients.get)
+ * IPC: clients:get (API_PATHS.clients.get)
  * リクエスト: id（取引先ID）
  * レスポンス: Client
  */
 export async function getClient(id: string): Promise<Client> {
-  void API_PATHS.clients.get(id)
+  void id
+  void API_PATHS.clients.get
   throw new Error('API not implemented')
 }
 
@@ -36,7 +37,7 @@ export async function createClient(input: ClientInput): Promise<Client> {
 
 /**
  * @API_INTEGRATION
- * IPC: clients:update:${id} (API_PATHS.clients.update)
+ * IPC: clients:update (API_PATHS.clients.update)
  * リクエスト: id, ClientInput
  * レスポンス: Client
  */
@@ -44,18 +45,20 @@ export async function updateClient(
   id: string,
   input: ClientInput
 ): Promise<Client> {
+  void id
   void input
-  void API_PATHS.clients.update(id)
+  void API_PATHS.clients.update
   throw new Error('API not implemented')
 }
 
 /**
  * @API_INTEGRATION
- * IPC: clients:delete:${id} (API_PATHS.clients.delete)
+ * IPC: clients:delete (API_PATHS.clients.delete)
  * リクエスト: id（取引先ID）
  * レスポンス: void
  */
 export async function deleteClient(id: string): Promise<void> {
-  void API_PATHS.clients.delete(id)
+  void id
+  void API_PATHS.clients.delete
   throw new Error('API not implemented')
 }

@@ -44,4 +44,8 @@ export function closeDatabase(): void {
   }
 }
 
+export function setDatabaseForTesting(testDb: DrizzleDb | null): void {
+  db = testDb
+}
+
 export { schema }
