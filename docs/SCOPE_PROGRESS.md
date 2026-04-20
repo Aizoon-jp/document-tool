@@ -10,7 +10,7 @@ BlueLampでの開発は以下のフローに沿って進行します。
 |---------|:----:|------|
 | **Phase 1: 要件定義** | [x] | 要件定義書・進捗管理表・CLAUDE.md作成完了 |
 | **Phase 2: Git/GitHub管理** | [x] | プロジェクトリポジトリを準備し開発環境を整える |
-| **Phase 3: フロントエンド基盤** | [ ] | Nextron + Next.js + Tailwind + shadcn/ui 基盤構築 |
+| **Phase 3: フロントエンド基盤** | [x] | Nextron + Next.js + Tailwind + shadcn/ui 基盤構築 |
 | **Phase 4: ページ実装** | [ ] | 5ページ + 5書類テンプレートの実装 |
 | **Phase 5: 環境構築** | [ ] | better-sqlite3 + Drizzle セットアップ、初期マイグレーション |
 | **Phase 6: バックエンド計画** | [ ] | Electron メインプロセス（DBアクセス・PDF生成・ファイルI/O）の実装計画 |

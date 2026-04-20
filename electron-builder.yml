@@ -1,0 +1,18 @@
+appId: jp.aizoon.jimu-tool
+productName: 事務ツール
+copyright: Copyright © 2026 Aizoon-jp
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - from: .
+    filter:
+      - package.json
+      - app
+win:
+  target:
+    - nsis
+mac:
+  target:
+    - dmg
+publish: null
