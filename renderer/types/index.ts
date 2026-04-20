@@ -22,3 +22,233 @@ export interface DocumentOptions {
   showRemarks: boolean
   showBankInfo: boolean
 }
+
+export type BankAccountType = 'ordinary' | 'checking'
+
+export interface Company {
+  id: string
+  name: string
+  tradeName: string | null
+  postalCode: string | null
+  address: string | null
+  tel: string | null
+  fax: string | null
+  email: string | null
+  website: string | null
+  representativeName: string | null
+  invoiceNumber: string | null
+  bankName: string | null
+  bankBranch: string | null
+  bankAccountType: BankAccountType | null
+  bankAccountNumber: string | null
+  bankAccountHolderKana: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type Honorific = '御中' | '様'
+export type TaxCategory = 'taxable_10' | 'taxable_8' | 'tax_free'
+
+export interface Client {
+  id: string
+  name: string
+  honorific: Honorific
+  postalCode: string | null
+  address: string | null
+  tel: string | null
+  contactPerson: string | null
+  contactDepartment: string | null
+  paymentTerms: string | null
+  defaultTaxCategory: TaxCategory
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type TaxRate = 10 | 8 | 0
+
+export interface Item {
+  id: string
+  name: string
+  unitPrice: number
+  unit: string
+  taxRate: TaxRate
+  isReducedTaxRate: boolean
+  defaultQuantity: number
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Stamp {
+  id: string
+  name: string
+  imagePath: string
+  defaultXMm: number
+  defaultYMm: number
+  widthMm: number
+  opacity: number
+  isDefault: boolean
+  createdAt: string
+}
+
+export interface DocumentSetting {
+  id: string
+  documentType: DocumentType
+  numberFormat: string
+  defaultOptions: DocumentOptions
+  defaultRemarks: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type CompanyInput = Omit<Company, 'id' | 'createdAt' | 'updatedAt'>
+export type ClientInput = Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
+export type ItemInput = Omit<Item, 'id' | 'createdAt' | 'updatedAt'>
+export type StampInput = Omit<Stamp, 'id' | 'createdAt'>
+export type DocumentSettingInput = Omit<
+  DocumentSetting,
+  'id' | 'createdAt' | 'updatedAt'
+>
+
+export interface Document {
+  id: string
+  documentType: DocumentType
+  documentNumber: string
+  issueDate: string
+  clientId: string
+  clientName: string
+  subtotal: number
+  taxAmount: number
+  totalAmount: number
+  withholdingTax: number
+  options: DocumentOptions
+  stampId: string | null
+  detailMode: DetailMode
+  remarks: string | null
+  pdfFilePath: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DocumentLine {
+  id: string
+  documentId: string
+  lineNumber: number
+  content: string
+  quantity: number
+  unit: string
+  unitPrice: number
+  taxRate: TaxRate
+  isReducedTaxRate: boolean
+  subtotalExclTax: number
+  subtotalInclTax: number
+}
+
+export interface DocumentWithLines extends Document {
+  lines: DocumentLine[]
+}
+
+export interface DocumentLineInput {
+  itemId: string | null
+  content: string
+  quantity: number
+  unit: string
+  unitPrice: number
+  taxRate: TaxRate
+  isReducedTaxRate: boolean
+}
+
+export interface DocumentDraft {
+  documentType: DocumentType
+  documentNumber: string
+  issueDate: string
+  clientId: string
+  detailMode: DetailMode
+  lines: DocumentLineInput[]
+  externalAmount: number
+  options: DocumentOptions
+  stampIds: string[]
+  remarks: string
+}
+
+export interface NextDocumentNumber {
+  documentType: DocumentType
+  yearMonth: string
+  sequence: number
+  formatted: string
+}
+
+export interface MonthlySummary {
+  yearMonth: string
+  totalCount: number
+  breakdown: Record<DocumentType, number>
+}
+
+export interface DocumentFilter {
+  clientName?: string
+  startDate?: string
+  endDate?: string
+  documentType?: DocumentType | 'all'
+  minAmount?: number
+  maxAmount?: number
+}
+
+export type DocumentSortKey =
+  | 'issueDate'
+  | 'totalAmount'
+  | 'documentNumber'
+  | 'clientName'
+
+export type SortDirection = 'asc' | 'desc'
+
+export interface DocumentSort {
+  key: DocumentSortKey
+  direction: SortDirection
+}
+
+export const API_PATHS = {
+  documents: {
+    list: 'documents:list',
+    listRecent: 'documents:list-recent',
+    search: 'documents:search',
+    monthlySummary: 'documents:monthly-summary',
+    get: (id: string) => `documents:get:${id}`,
+    lines: (id: string) => `documents:lines:${id}`,
+    create: 'documents:create',
+    update: (id: string) => `documents:update:${id}`,
+    delete: (id: string) => `documents:delete:${id}`,
+    generatePdf: (id: string) => `documents:generate-pdf:${id}`,
+    duplicate: (id: string) => `documents:duplicate:${id}`,
+    nextNumber: (type: DocumentType) => `documents:next-number:${type}`,
+  },
+  clients: {
+    list: 'clients:list',
+    get: (id: string) => `clients:get:${id}`,
+    create: 'clients:create',
+    update: (id: string) => `clients:update:${id}`,
+    delete: (id: string) => `clients:delete:${id}`,
+  },
+  items: {
+    list: 'items:list',
+    get: (id: string) => `items:get:${id}`,
+    create: 'items:create',
+    update: (id: string) => `items:update:${id}`,
+    delete: (id: string) => `items:delete:${id}`,
+  },
+  stamps: {
+    list: 'stamps:list',
+    get: (id: string) => `stamps:get:${id}`,
+    create: 'stamps:create',
+    update: (id: string) => `stamps:update:${id}`,
+    delete: (id: string) => `stamps:delete:${id}`,
+  },
+  company: {
+    get: 'company:get',
+    update: 'company:update',
+  },
+  documentSettings: {
+    list: 'document-settings:list',
+    update: (type: DocumentType) => `document-settings:update:${type}`,
+  },
+} as const

@@ -1,19 +1,18 @@
 import Head from 'next/head'
-import { Building2, Users, Package, Stamp, FileCog } from 'lucide-react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../../components/ui/card'
+import { Building2, FileCog, Package, Stamp, Users } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import { SettingsCompanyTab } from '../../components/settings/SettingsCompanyTab'
+import { SettingsClientsTab } from '../../components/settings/SettingsClientsTab'
+import { SettingsItemsTab } from '../../components/settings/SettingsItemsTab'
+import { SettingsStampsTab } from '../../components/settings/SettingsStampsTab'
+import { SettingsDocumentTypesTab } from '../../components/settings/SettingsDocumentTypesTab'
 
 const TABS = [
   { id: 'company', label: '会社基本情報', icon: Building2 },
   { id: 'clients', label: '取引先マスタ', icon: Users },
   { id: 'items', label: '品目マスタ', icon: Package },
   { id: 'stamps', label: '印影管理', icon: Stamp },
-  { id: 'documents', label: '書類別設定', icon: FileCog },
+  { id: 'document-settings', label: '書類別設定', icon: FileCog },
 ] as const
 
 export default function SettingsPage() {
@@ -30,24 +29,32 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <Card key={id} className="transition-shadow hover:shadow-md">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Icon className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-base">{label}</CardTitle>
-                </div>
-                <CardDescription>Phase 4 で CRUD UI を実装</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                  未実装
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Tabs defaultValue="company" className="w-full">
+          <TabsList className="h-auto flex-wrap justify-start gap-1 bg-muted/60 p-1">
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <TabsTrigger key={id} value={id} className="gap-2">
+                <Icon className="h-4 w-4" />
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="company">
+            <SettingsCompanyTab />
+          </TabsContent>
+          <TabsContent value="clients">
+            <SettingsClientsTab />
+          </TabsContent>
+          <TabsContent value="items">
+            <SettingsItemsTab />
+          </TabsContent>
+          <TabsContent value="stamps">
+            <SettingsStampsTab />
+          </TabsContent>
+          <TabsContent value="document-settings">
+            <SettingsDocumentTypesTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   )

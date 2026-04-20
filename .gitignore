@@ -40,6 +40,9 @@ playwright-report/
 test-results/
 .playwright-mcp/
 
+# TypeScript incremental build info
+*.tsbuildinfo
+
 # Logs
 *.log
 
