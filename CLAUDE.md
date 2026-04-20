@@ -171,3 +171,22 @@
 
 ## AI設計
 本プロジェクトにAI機能は含まれません（Step#6.5判定: 該当なし）。
+
+## CI/CD設定
+
+### GitHub Actions（PR時に自動実行）
+| チェック | 対象 | コマンド |
+|---------|------|---------|
+| TypeScript | ルート | `npx tsc --noEmit` |
+| Lint | ルート | `npm run lint` |
+| Build | ルート | `npm run build` |
+
+### ブランチ戦略
+- `main`: 本番環境
+- `develop`: 開発統合ブランチ
+- `feature/*`: 機能開発ブランチ
+
+### リポジトリ
+- URL: https://github.com/Aizoon-jp/document-tool
+- 公開設定: Private
+
