@@ -55,3 +55,9 @@ coverage/
 *.db-journal
 *.db-shm
 *.db-wal
+
+# Playwright test artifacts
+tests/e2e/.artifacts/
+
+# PDF test outputs (local only)
+/*.pdf

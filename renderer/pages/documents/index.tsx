@@ -11,7 +11,7 @@ import {
 import { DocumentHistoryTable } from '../../components/documents/DocumentHistoryTable'
 import {
   useDeleteDocument,
-  useDuplicateDocument,
+  useDocuments,
   useGeneratePdf,
   useSearchDocuments,
 } from '../../hooks/useDocuments'
@@ -23,7 +23,6 @@ export default function DocumentsHistoryPage() {
   const router = useRouter()
   const [filters, setFilters] = useState<HistoryFilters>(EMPTY_FILTERS)
   const deleteMutation = useDeleteDocument()
-  const duplicateMutation = useDuplicateDocument()
   const pdfMutation = useGeneratePdf()
 
   const filter = toDocumentFilter(filters)
@@ -31,16 +30,12 @@ export default function DocumentsHistoryPage() {
     filter,
     DEFAULT_SORT
   )
+  const { data: allDocuments = [] } = useDocuments(DEFAULT_SORT)
 
   const handleRowClick = (id: string) => router.push(`/documents/${id}`)
 
-  const handleDuplicate = async (id: string) => {
-    try {
-      const created = await duplicateMutation.mutateAsync(id)
-      router.push(`/documents/${created.id}`)
-    } catch (e) {
-      alert(`複製に失敗しました: ${(e as Error).message}`)
-    }
+  const handleDuplicate = (id: string) => {
+    router.push(`/documents/new?from=${id}`)
   }
 
   const handleDownloadPdf = async (id: string) => {
@@ -85,7 +80,9 @@ export default function DocumentsHistoryPage() {
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            {isLoading ? '読み込み中...' : `${documents.length}件を表示`}
+            {isLoading
+              ? '読み込み中...'
+              : `${allDocuments.length}件中 ${documents.length}件を表示`}
           </span>
           <span className="text-xs">並び順: 発行日（降順）</span>
         </div>

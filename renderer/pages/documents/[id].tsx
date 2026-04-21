@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import {
   ArrowLeft,
@@ -90,10 +90,38 @@ const toFormValues = (
   remarks: doc.remarks ?? '',
 })
 
+/**
+ * Extract the document UUID from the current URL pathname.
+ *
+ * `getStaticPaths` only emits `/documents/placeholder/index.html`, so
+ * `router.query.id` is always `'placeholder'` after hydration. The
+ * Electron main process serves that same HTML for any
+ * `/documents/{uuid}/` URL (SPA fallback), so the real UUID lives in
+ * `window.location.pathname`.
+ */
+const extractIdFromPathname = (pathname: string): string => {
+  const segments = pathname.split('/').filter(Boolean)
+  const last = segments[segments.length - 1] ?? ''
+  return last === 'placeholder' ? '' : last
+}
+
 export default function DocumentDetailPage() {
   const router = useRouter()
-  const rawId = router.query.id
-  const id = typeof rawId === 'string' ? rawId : ''
+  const [id, setId] = useState<string>('')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const fromPath = extractIdFromPathname(window.location.pathname)
+    if (fromPath) {
+      setId(fromPath)
+      return
+    }
+    // Fallback: CSR navigation via router.push keeps query.id correct.
+    const rawId = router.query.id
+    if (typeof rawId === 'string' && rawId !== 'placeholder') {
+      setId(rawId)
+    }
+  }, [router.query.id, router.asPath])
 
   const { data: doc, isLoading: isDocLoading, error } = useDocument(id)
   const { data: lines = [] } = useDocumentLines(id)
@@ -130,19 +158,14 @@ export default function DocumentDetailPage() {
     }
   }
 
-  const handleDuplicate = async () => {
+  const handleDuplicate = () => {
     if (!doc) return
-    try {
-      const created = await duplicateMutation.mutateAsync(doc.id)
-      router.push(`/documents/${created.id}`)
-    } catch (e) {
-      alert(`複製に失敗しました: ${(e as Error).message}`)
-    }
+    router.push(`/documents/new?from=${doc.id}`)
   }
 
   const handleReissue = () => {
     if (!doc) return
-    router.push(`/documents/new?type=${doc.documentType}`)
+    router.push(`/documents/new?base=${doc.id}`)
   }
 
   const handleDelete = async () => {
@@ -156,7 +179,7 @@ export default function DocumentDetailPage() {
     }
   }
 
-  if (isDocLoading) {
+  if (!id || isDocLoading) {
     return (
       <>
         <Head>
@@ -240,7 +263,7 @@ export default function DocumentDetailPage() {
             </Button>
             <Button variant="outline" onClick={handleReissue}>
               <Pencil className="mr-1 h-4 w-4" />
-              新規作成へ
+              編集（再発行）
             </Button>
             <Button onClick={handleRegeneratePdf} disabled={isBusy}>
               <FileDown className="mr-1 h-4 w-4" />
@@ -344,10 +367,8 @@ export default function DocumentDetailPage() {
 
           <div>
             <Card>
-              <CardHeader>
+              <CardContent className="space-y-4 pt-6">
                 <CardTitle className="text-base">書類プレビュー</CardTitle>
-              </CardHeader>
-              <CardContent>
                 <DocumentPreview
                   values={previewValues}
                   client={client}

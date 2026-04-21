@@ -58,7 +58,7 @@ export const DocumentLinesField = ({ control, items }: Props) => {
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-[1fr_80px_60px_100px_110px_32px] gap-2 px-1 text-xs text-muted-foreground">
+      <div className="grid grid-cols-[minmax(0,1fr)_80px_60px_100px_110px_32px] gap-2 px-1 text-xs text-muted-foreground">
         <span>品目</span>
         <span className="text-right">数量</span>
         <span className="text-center">単位</span>
@@ -82,7 +82,7 @@ export const DocumentLinesField = ({ control, items }: Props) => {
         return (
           <div
             key={f.id}
-            className="grid grid-cols-[1fr_80px_60px_100px_110px_32px] items-start gap-2"
+            className="grid grid-cols-[minmax(0,1fr)_80px_60px_100px_110px_32px] items-start gap-2"
           >
             <div className="space-y-1">
               <Select

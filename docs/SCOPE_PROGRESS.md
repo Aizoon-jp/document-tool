@@ -16,7 +16,7 @@ BlueLampでの開発は以下のフローに沿って進行します。
 | **Phase 6: バックエンド計画** | [x] | Electron メインプロセス（DBアクセス・PDF生成・ファイルI/O）の実装計画 |
 | **Phase 7: バックエンド実装** | [x] | IPC経由でCRUDとPDF生成を実装 |
 | **Phase 8: API統合** | [x] | フロントエンドとElectron IPC層の統合 |
-| **Phase 9: E2Eテスト** | [ ] | 主要書類（請求書・領収書・見積書）の発行フローをE2E検証 |
+| **Phase 9: E2Eテスト** | [x] | 主要書類（請求書・領収書・見積書）の発行フローをE2E検証 |
 | **Phase 10: ローカル動作確認** | [ ] | アプリ起動→全書類発行→PDF生成→履歴確認の通し検証 |
 | **Phase 11: デプロイメント** | [ ] | electron-builder でWindows exe / Mac dmg を生成・配布 |
 
@@ -33,195 +33,257 @@ BlueLampでの開発は以下のフローに沿って進行します。
 
 ---
 
-## ページ管理表
+## 📊 受入試験進捗
 
-| ID | ページ名 | ルート | 権限 | 着手 | 完了 |
-|----|---------|-------|------|------|------|
-| P-001 | ダッシュボード | `/` | ユーザー | [x] | [x] |
-| P-002 | 書類作成 | `/documents/new` | ユーザー | [x] | [x] |
-| P-003 | 書類履歴 | `/documents` | ユーザー | [x] | [x] |
-| P-004 | 書類詳細・再発行 | `/documents/[id]` | ユーザー | [x] | [x] |
-| P-005 | 設定（タブUI） | `/settings` | ユーザー | [x] | [x] |
+- **総テスト項目数**: 44項目
+- **Pass**: 44項目 (100%)
+- **未完了**: 0項目 (0%)
 
-## 書類テンプレート管理表
+最終更新: 2026-04-21 05:00
 
-Phase 7で 5書類種別共通の HTML テンプレートとして `main/pdf/htmlTemplate.ts` に実装済み（書類種別はタイトル差し替えで対応）。
+## 📝 受入試験チェックリスト
 
-| ID | 書類種別 | テンプレート | 着手 | 完了 |
-|----|---------|------------|------|------|
-| T-001 | 請求書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
-| T-002 | 領収書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
-| T-003 | 見積書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
-| T-004 | 振込依頼書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
-| T-005 | 納品書 | `main/pdf/htmlTemplate.ts` | [x] | [x] |
+### 1. ダッシュボード（/）- 7項目
+**ゴール**: 最近発行した書類の把握・書類種別ごとのクイック作成・月次発行状況の確認
+
+| 状態 | ID | 項目 | 期待結果 |
+|:----:|-----|------|---------|
+| [x] | E2E-DASH-001 | ダッシュボード初期表示 | 見出し/クイック作成5ボタン/最近発行テーブル/今月件数カードが表示 |
+| [x] | E2E-DASH-002 | クイック作成フロー（全5種） | 各ボタンで `/documents/new?type={type}` に遷移 |
+| [x] | E2E-DASH-003 | 最近書類の行クリックで詳細遷移 | `/documents/{id}` に遷移 |
+| [x] | E2E-DASH-004 | 最近書類のフォーマット検証 | 日付 `yyyy/MM/dd`、金額 `¥1,320,000`、書類種別日本語ラベル |
+| [x] | E2E-DASH-005 | 今月サマリ表示 | 総件数/種別内訳5種が表示 |
+| [x] | E2E-DASH-006 | 書類履歴をすべて見る | `/documents` に遷移 |
+| [x] | E2E-DASH-007 | 空状態（最近書類ゼロ件） | テーブル0行/サマリ0件/クイック作成は通常動作 |
+
+### 2. 書類作成（/documents/new）- 9項目
+**ゴール**: 5書類種別を選んで取引先・明細・オプションを入力し、PDF発行または下書き保存ができる
+
+| 状態 | ID | 項目 | 期待結果 |
+|:----:|-----|------|---------|
+| [x] | E2E-DOC-NEW-001 | クエリパラメータ付き初期表示 | `?type=invoice` で請求書モードで初期表示 |
+| [x] | E2E-DOC-NEW-002 | 書類種別切替で見出し・番号・振込先が連動 | 種別変更で書類番号プレフィックス・振込先セクションが切替 |
+| [x] | E2E-DOC-NEW-003 | 取引先選択でプレビュー宛名が更新 | セレクトで選択した取引先名がプレビュー反映 |
+| [x] | E2E-DOC-NEW-004 | 明細モード切替（直接記載⇔別紙明細） | モード切替で明細UIと合計表示が切り替わる |
+| [x] | E2E-DOC-NEW-005 | 明細行の追加・削除 | ＋/−ボタンで行追加/削除、合計再計算 |
+| [x] | E2E-DOC-NEW-006 | 品目マスタ連動で単価・単位・数量自動入力 | 品目選択で既定値が入る |
+| [x] | E2E-DOC-NEW-007 | オプショントグルで計算・プレビュー連動 | 源泉徴収/内税外税などトグルで合計再計算 |
+| [x] | E2E-DOC-NEW-008 | 印影の複数選択トグル | 印影の選択状態がプレビューに反映 |
+| [x] | E2E-DOC-NEW-009 | アクションボタンの挙動（PDF/下書き/キャンセル） | 各ボタンで対応アクション（PDF生成・保存・離脱）が実行 |
+
+### 3. 書類履歴（/documents）- 10項目
+**ゴール**: 過去書類を一覧・検索し、詳細へ到達、再発行・複製・削除ができる
+
+| 状態 | ID | 項目 | 期待結果 |
+|:----:|-----|------|---------|
+| [x] | E2E-DOC-HIST-001 | 履歴初期表示 | 全書類一覧が発行日降順で表示 |
+| [x] | E2E-DOC-HIST-002 | 取引先名フィルタ（部分一致） | 取引先名で絞り込み、件数更新 |
+| [x] | E2E-DOC-HIST-003 | 期間フィルタ（開始／終了） | 期間指定で絞り込み |
+| [x] | E2E-DOC-HIST-004 | 書類種別フィルタ（全5種パラメータ化） | 種別選択で対象種別のみ絞り込み |
+| [x] | E2E-DOC-HIST-005 | 金額範囲フィルタ | 金額範囲で絞り込み |
+| [x] | E2E-DOC-HIST-006 | 複合条件＋リセット | 複数フィルタ適用/リセット |
+| [x] | E2E-DOC-HIST-007 | 行クリックで詳細遷移 | `/documents/{id}` に遷移 |
+| [x] | E2E-DOC-HIST-008 | 操作メニュー：複製で新規作成へ遷移 | `/documents/new?from={id}` に遷移 |
+| [x] | E2E-DOC-HIST-009 | 操作メニュー：削除（OK／キャンセル分岐） | 確認ダイアログ分岐を検証 |
+| [x] | E2E-DOC-HIST-010 | 空状態（該当0件） | 該当0件メッセージ表示 |
+
+### 4. 書類詳細・再発行（/documents/[id]）- 9項目
+**ゴール**: 書類の内容確認・編集保存・PDF再発行・複製・削除ができる
+
+| 状態 | ID | 項目 | 期待結果 |
+|:----:|-----|------|---------|
+| [x] | E2E-DOC-DETAIL-001 | 書類詳細の初期表示 | ヘッダ/取引先/明細/合計/オプション/印影が表示 |
+| [x] | E2E-DOC-DETAIL-002 | 書類種別バリエーション（全5種） | h1/title/プレビューh2が種別で切替 |
+| [x] | E2E-DOC-DETAIL-003 | 履歴に戻るボタン | `/documents` に遷移 |
+| [x] | E2E-DOC-DETAIL-004 | 複製 → 新規作成へ遷移 | `/documents/new?from={id}` に遷移 |
+| [x] | E2E-DOC-DETAIL-005 | 編集（再発行）→ 新規作成へ遷移 | `/documents/new?base={id}` に遷移 |
+| [x] | E2E-DOC-DETAIL-006 | PDF再生成 | alertまたはIPCでPDF生成、URLは保持 |
+| [x] | E2E-DOC-DETAIL-007 | 削除（OK／キャンセル分岐） | 確認ダイアログ分岐、URL保持 |
+| [x] | E2E-DOC-DETAIL-008 | 存在しないIDのエラー画面 | 書類が見つかりませんカード表示 |
+| [x] | E2E-DOC-DETAIL-009 | 情報カードのフォーマット検証 | 書類番号/発行日/金額/作成日時のフォーマット |
+
+### 5. 設定（/settings）- 9項目
+**ゴール**: 会社情報・取引先・品目・印影・書類別設定をタブで管理できる
+
+| 状態 | ID | 項目 | 期待結果 |
+|:----:|-----|------|---------|
+| [x] | E2E-SETTINGS-001 | 初期表示（会社基本情報タブ既定） | 見出し/5タブ/基本情報+振込先口座カード表示 |
+| [x] | E2E-SETTINGS-002 | タブ切替（全5タブ） | 5タブ各パネルを順次クリックで表示確認 |
+| [x] | E2E-SETTINGS-003 | 会社基本情報の保存 | 会社名編集→保存で `company:update` IPC呼び出し |
+| [x] | E2E-SETTINGS-004 | 取引先マスタ：一覧＋新規追加ダイアログ | 3件→追加で4件、ダイアログ動作 |
+| [x] | E2E-SETTINGS-005 | 取引先マスタ：編集ダイアログ＋削除confirm | 編集ダイアログ表示、削除で件数-1 |
+| [x] | E2E-SETTINGS-006 | 品目マスタ：一覧フォーマット＋軽減税率バッジ | 5件表示、軽減税率バッジ検証 |
+| [x] | E2E-SETTINGS-007 | 印影管理：一覧＋新規追加（画像アップロード） | 2件→PNGアップロードで3件 |
+| [x] | E2E-SETTINGS-008 | 書類別設定：5種カード＋オプション切替＋保存 | 請求書カード源泉徴収Switch+保存 |
+| [x] | E2E-SETTINGS-009 | 書類別設定：採番フォーマット＆定型備考の編集 | 領収書カードInput/Textarea編集+保存 |
+
+## 🎯 ベストプラクティス（成功パターン蓄積）
+
+### Electron起動
+- Playwright `_electron.launch()` で `app/background.js` を指定して本物のElectronを起動
+- `--disable-gpu` フラグを付与（ヘッドレスCI環境対策）
+- ヘルパー: `tests/e2e/helpers/electronApp.ts`（起動・終了の再利用）
+
+### E2E用ビルド前提
+- 事前に `cd renderer && next build` でレンダラーを静的エクスポート
+- メインプロセスは nextron の webpack を直接起動してビルド
+- `nextron.config.js` に externals 設定: `better-sqlite3` / `electron-serve` / `electron-store`
+- better-sqlite3 はネイティブモジュール再ビルド必要: `npx @electron/rebuild -f -t prod,dev -w better-sqlite3`
+- `electron-serve` は `app.getAppPath()/app` を探すため、ヘルパーで `app/app → .` シンボリックリンクを自動生成
+
+### 認証処理
+（本プロジェクトは認証なし）
+
+### 待機処理
+
+### UI操作
+- Next.js `trailingSlash` 設定や Next export の性質で URL末尾スラッシュが付くため、URL検証は `.*\?type=.*` パターン使用を推奨
+- `page.goBack()` 直後はDOM再マウントでボタンがdetachされるため、クリック前に `await expect(locator).toBeVisible()` で再安定化を待つ
+- shadcn/ui Select は「Selectトリガー + HTMLネイティブoption + プレビュー」等で同テキストが複数箇所に出現する。`getByText` は strict mode violation を起こすため、プレビューのルート要素（例: `div.aspect-[1/1.414]`）でスコープを絞る
+
+### フィルター前後の件数並記表示 - Pass日時: 2026-04-21 (E2E-DOC-HIST-001)
+**問題**: 仕様書は `{total}件中 {filtered}件を表示` を要求したが、実装は `useSearchDocuments`（フィルター適用後）の結果のみで `${documents.length}件を表示` とレンダリング。総件数（絞り込み前）が表示できない。
+
+**成功パターン**（フィルター前の総件数を別クエリで取得）:
+```tsx
+// renderer/pages/documents/index.tsx
+const { data: documents = [], isLoading } = useSearchDocuments(filter, DEFAULT_SORT)
+const { data: allDocuments = [] } = useDocuments(DEFAULT_SORT)
+// ...
+{isLoading
+  ? '読み込み中...'
+  : `${allDocuments.length}件中 ${documents.length}件を表示`}
+```
+
+**重要なポイント**:
+- TanStack Query のキャッシュ共有により、`useDocuments` と `useSearchDocuments` の同時利用で追加IPCは発生しない（queryKey が別ならそれぞれ1回ずつだが、軽量）
+- 総件数と表示件数を別変数で保持することで、フィルター前・適用後の両方を同一コンポーネント内で管理できる
+- フィルター0件時は `15件中 0件を表示` となり仕様通り
+
+### Nextron 動的ルート × output:export の SPA フォールバック - Pass日時: 2026-04-21 (E2E-DOC-DETAIL-001)
+**問題**: `output: 'export'` + `getStaticPaths({ paths: [{ params: { id: 'placeholder' } }], fallback: false })` では `app/documents/placeholder/index.html` しか生成されず、`app://./documents/{uuid}/` にアクセスすると electron-serve がダッシュボードの `index.html` にフォールバックしてしまい詳細ページが描画されない。
+
+**成功パターン**（`electron-serve` を捨てて自前の `registerFileProtocol` ハンドラで SPA フォールバック）:
+```ts
+// main/background.ts
+protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }])
+
+const registerAppProtocol = (): void => {
+  const appDir = path.join(app.getAppPath(), 'app')
+  const indexPath = path.join(appDir, 'index.html')
+  session.defaultSession.protocol.registerFileProtocol('app', (request, callback) => {
+    const { pathname } = new URL(request.url)
+    const ext = path.extname(pathname)
+    const target = path.join(appDir, decodeURIComponent(pathname))
+    // 静的ファイルは実体優先
+    try {
+      const s = fs.statSync(target)
+      if (s.isFile()) return callback({ path: target })
+      if (s.isDirectory()) {
+        const html = path.join(target, 'index.html')
+        if (fs.existsSync(html)) return callback({ path: html })
+      }
+    } catch {}
+    if (ext && ext !== '.html') return callback({ error: -6 })
+    // 動的ルート fallback: /documents/{uuid}/ → placeholder HTML
+    if (/^\/documents\/[^/]+\/?$/.test(pathname) && !pathname.startsWith('/documents/new')) {
+      return callback({ path: path.join(appDir, 'documents', 'placeholder', 'index.html') })
+    }
+    callback({ path: indexPath })
+  })
+}
+```
+そしてページ側で `window.location.pathname` から実 ID を抽出:
+```tsx
+// renderer/pages/documents/[id].tsx
+const [id, setId] = useState<string>('')
+useEffect(() => {
+  const last = window.location.pathname.split('/').filter(Boolean).pop() ?? ''
+  if (last && last !== 'placeholder') setId(last)
+  else if (typeof router.query.id === 'string' && router.query.id !== 'placeholder') setId(router.query.id)
+}, [router.query.id, router.asPath])
+```
+
+**重要なポイント**:
+- `__NEXT_DATA__` は `id: 'placeholder'` で固定されるため `router.query.id` は常に `placeholder`
+- placeholder HTML 内の JS チャンクはそのまま再利用でき、CSR で hydrate 後に IPC データ取得
+- 静的アセット（`.css`/`.js` 等）は拡張子で判定して実体ルックアップ（SPA フォールバックに巻き込まない）
+
+**失敗したパターン（参考）**:
+- ❌ `getStaticPaths` を削除 → Next.js 静的エクスポートでエラー
+- ❌ `fallback: 'blocking'` → output:export では未対応
+- ❌ placeholder に直接アクセスして `router.push('/documents/{uuid}')` → `electron-serve` はファイル無しで `index.html` へフォールバック
+
+### Card の書類プレビュー見出し位置（`filter().last()` とDOM構造の整合） - Pass日時: 2026-04-21 (E2E-DOC-DETAIL-001)
+**問題**: `page.locator('div').filter({ has: getByText('書類プレビュー') }).last().locator('h2')` が `shadcn/ui` の `<Card><CardHeader>書類プレビュー</CardHeader><CardContent>...h2...</CardContent></Card>` 構造だと、`.last()` が CardHeader div を指してしまい h2 に辿り着けない。
+
+**成功パターン**（CardHeader を使わず、`書類プレビュー` と h2 を同じ CardContent 内に置く）:
+```tsx
+<Card>
+  <CardContent className="space-y-4 pt-6">
+    <CardTitle className="text-base">書類プレビュー</CardTitle>
+    <DocumentPreview ... />
+  </CardContent>
+</Card>
+```
+
+**重要なポイント**:
+- `filter({ has: ... }).last()` は document order の最後（通常は最内側）の div を返す
+- 見出しと本文を同じ div に入れることで `last()` が本文側を含むコンテナに解決される
+
+### E2Eビルド再実行手順（app/ 欠損時）
+**問題**: `npm run build` がルートで CSS ビルドエラー（`border-border` class not found）となり `app/` 全体が消える。
+
+**成功パターン**（renderer → main の順で個別ビルド）:
+```bash
+cd renderer && NODE_ENV=production npx next build
+node /home/kazuhiro/事務ツール/node_modules/nextron/bin/webpack.config.js
+```
+
+**重要なポイント**:
+- `cd renderer && next build` では `renderer/tailwind.config.js` が正しく解決される
+- Nextron の main プロセス webpack は `node_modules/nextron/bin/webpack.config.js` を直接呼べる
+- 事前に `app/` を削除する必要はない（それぞれ上書き）
+
+### sticky プレビューとの重なり対策 - Pass日時: 2026-04-21 (E2E-DOC-NEW-005)
+**問題**: `lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]` の左ペイン内のサブグリッドが `grid-cols-[1fr_...]` で定義されると、1fr の暗黙 min-width=min-content により列がシュリンクせず、右側の `lg:sticky` プレビューカードの下へ要素がオーバーフロー。最右列（削除ボタン）が重なり、Playwright クリックが「subtree intercepts pointer events」で30秒タイムアウト。
+
+**成功パターン**（実装側ルート修正・最小変更）:
+```tsx
+// renderer/components/documents/DocumentLinesField.tsx
+// before: grid-cols-[1fr_80px_60px_100px_110px_32px]
+// after:  grid-cols-[minmax(0,1fr)_80px_60px_100px_110px_32px]
+<div className="grid grid-cols-[minmax(0,1fr)_80px_60px_100px_110px_32px] items-start gap-2">
+```
+
+**重要なポイント**:
+- CSS Grid の `1fr` は暗黙的に `minmax(auto, 1fr)` であり、子要素の min-content によりシュリンクが阻止される
+- ネストされたグリッドでは外側が `minmax(0, 1fr)` でも、内側も `minmax(0, 1fr)` にしないとオーバーフロー
+- sticky レイアウトで「button visible/enabled/stable だが intercepts pointer events」エラーに遭遇したら、まず親コンテナ幅と子グリッドの実幅を確認
+
+**失敗したパターン（参考）**:
+- ❌ `click({ force: true })`: 症状隠蔽、根本原因（レイアウトオーバーフロー）が残る
+- ❌ ビューポート拡大: Electron BrowserWindow の幅（1280x800）は固定、Playwright の setViewportSize は効かない
+- ❌ `scrollIntoViewIfNeeded()`: Playwright 既定で既に実行済（Call log参照）。縦スクロールでは解決しない横方向重なり
 
 ---
 
-## バックエンド実装計画
+### IPC呼び出し検証
+- 実IPC + 実SQLite DB で検証（モック使用禁止）
+- 空DBでテストする場合、一覧系APIは空配列を返す → 「書類がまだ発行されていません」等の空状態UIが表示される点に注意
 
-### 前提
-- 本プロジェクトは **Electron IPC** 通信（REST APIではない）
-- 「エンドポイント」は `API_PATHS`（renderer/types/index.ts）で定義された IPC チャネル
-- 認証なし（ローカル単一ユーザー）→ 認証スライス不要
-- 外部API未使用 → 実装タスク表の「外部」列は全て `-`
-- 型の単一真実源: `renderer/types/index.ts`
-- IPC型は `shared/types/ipc.ts`（現状 `app:getVersion` のみ → Phase 7 で全チャネル追加）
+### 仕様書と実装の差分（記録）
+- 書類番号プレフィックス: 仕様書は`QUO/PAY/DLV`だが実装は`QT/PR/DN`（見積書/振込依頼書/納品書）。請求書INV・領収書RCPは一致。E2E-DOC-NEW-002 以降で該当する種別検証時は実装値を優先
+- 発行日: 仕様書は `new Date().toISOString().slice(0, 10)`（UTC）を明示。テスト側もUTC基準で統一
+- アクションボタン（PDF生成/下書き保存）: 仕様書は Phase 4 時点の alert() + console.log() ダミー動作を記述。Phase 8 IPC 統合後は実 documents:create / documents:generate-pdf が呼ばれ `/documents/:id` へ遷移する実装。テストは本質（バリデーション/alert 発火/遷移）で検証
 
-### 垂直スライス依存関係
-| 順序 | スライス名 | 主要機能 | 依存 |
-|------|-----------|---------|------|
-| 1-A | 会社基本情報 | company get/update（1件固定） | なし |
-| 1-B | 取引先マスタ | clients CRUD | なし |
-| 1-C | 品目マスタ | items CRUD | なし |
-| 1-D | 印影管理 | stamps CRUD + 画像ファイルI/O | なし |
-| 1-E | 書類別設定 | document_settings list/update | なし |
-| 2 | 書類番号採番 | next-number（月次シーケンス生成） | 1-E |
-| 3 | 書類CRUD | documents + document_lines の生成・更新・削除・複製 | 1-B, 1-C, 1-D, 2 |
-| 4-A | 書類一覧・検索 | list / list-recent / search | 3 |
-| 4-B | 月次サマリ | monthly-summary | 3 |
-| 5 | PDF生成 | printToPDF + 角印合成 + 履歴登録 | 1-A, 1-D, 3 |
+### PDF生成の前提条件
+- documents:generate-pdf は company:get が null だと失敗する
+- PDF生成テストの前に company:update（テスト用の最小限の会社情報）を IPC 経由でシードすること
 
-※ 番号-アルファベット表記は並列実装可能（例: 1-A〜1-E は全て同時実装可、4-A と 4-B も並列可）
-
-### 並列実装グループ
-- **グループα（マスタ系・全並列）**: 1-A / 1-B / 1-C / 1-D / 1-E
-  - 同一テーブルへのマイグレーション競合なし（Phase 5で確定済）
-- **グループβ（集計系・並列）**: 4-A / 4-B
-  - スライス3完了後、同時着手可
-- **直列必須**: 2 → 3 → 5（採番なしで書類作成不可、書類なしでPDF生成不可）
-
-### 共通基盤（スライス着手前に整備）
-| 項目 | 内容 |
-|------|------|
-| IPC型定義 | `shared/types/ipc.ts` に全26チャネルのシグネチャ追加 |
-| preload.ts | `contextBridge` で全チャネルを白リスト公開 |
-| IPC共通ラッパ | `main/ipc/index.ts` で `ipcMain.handle()` の一括登録＋エラーハンドラ |
-| ID生成 | `crypto.randomUUID()` 統一（全エンティティ） |
-| JSON変換 | options / defaultOptions の serialize/deserialize ヘルパ |
-
-### エンドポイント実装タスクリスト
-
-#### スライス1-A: 会社基本情報
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1A.1 | `company:get` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 1A.2 | `company:update` | U（upsert） | [x] | [x] | [x] | - | [x] | [x] |
-
-#### スライス1-B: 取引先マスタ
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1B.1 | `clients:list` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 1B.2 | `clients:get:{id}` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 1B.3 | `clients:create` | C | [x] | [x] | [x] | - | [x] | [x] |
-| 1B.4 | `clients:update:{id}` | U | [x] | [x] | [x] | - | [x] | [x] |
-| 1B.5 | `clients:delete:{id}` | D | [x] | [x] | [x] | - | [x] | [x] |
-
-#### スライス1-C: 品目マスタ
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1C.1 | `items:list` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 1C.2 | `items:get:{id}` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 1C.3 | `items:create` | C | [x] | [x] | [x] | - | [x] | [x] |
-| 1C.4 | `items:update:{id}` | U | [x] | [x] | [x] | - | [x] | [x] |
-| 1C.5 | `items:delete:{id}` | D | [x] | [x] | [x] | - | [x] | [x] |
-
-#### スライス1-D: 印影管理
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1D.1 | `stamps:list` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 1D.2 | `stamps:get:{id}` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 1D.3 | `stamps:create` | C + 画像保存 | [x] | [x] | [x] | - | [x] | [x] |
-| 1D.4 | `stamps:update:{id}` | U + 画像差替 | [x] | [x] | [x] | - | [x] | [x] |
-| 1D.5 | `stamps:delete:{id}` | D + 画像削除 | [x] | [x] | [x] | - | [x] | [x] |
-
-※ 画像保存先: `app.getPath('userData')/stamps/stamp_{id}.png`
-※ 検証: MIME（PNG/JPG）/ サイズ（≤5MB）/ path.basename で `..` 拒否
-
-#### スライス1-E: 書類別設定
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 1E.1 | `document-settings:list` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 1E.2 | `document-settings:update:{type}` | U（upsert） | [x] | [x] | [x] | - | [x] | [x] |
-
-#### スライス2: 書類番号採番
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 2.1 | `documents:next-number:{type}` | 計算 | [x] | [x] | [x] | - | [x] | [x] |
-
-※ `numberFormat`（例: `{YYYY}-{MM}-{seq:3}`）を document_settings から取得しフォーマット
-※ 同月内の最大 sequence を documents テーブルから取得して +1
-
-#### スライス3: 書類CRUD
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 3.1 | `documents:create` | C + lines 一括挿入 | [x] | [x] | [x] | - | [x] | [x] |
-| 3.2 | `documents:get:{id}` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 3.3 | `documents:lines:{id}` | R | [x] | [x] | [x] | - | [x] | [x] |
-| 3.4 | `documents:update:{id}` | U + lines 差替 | [x] | [x] | [x] | - | [x] | [x] |
-| 3.5 | `documents:delete:{id}` | D（cascade） | [x] | [x] | [x] | - | [x] | [x] |
-| 3.6 | `documents:duplicate:{id}` | C（既存を複製） | [x] | [x] | [x] | - | [x] | [x] |
-
-※ create / update / duplicate は `db.transaction()` で documents + document_lines を原子更新
-※ subtotal / taxAmount / totalAmount / withholdingTax はバックエンド側で再計算（フロントの値は信頼しない）
-
-#### スライス4-A: 書類一覧・検索
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 4A.1 | `documents:list` | R（全件+並替） | [x] | [x] | [x] | - | [x] | [x] |
-| 4A.2 | `documents:list-recent` | R（最近5件） | [x] | [x] | [x] | - | [x] | [x] |
-| 4A.3 | `documents:search` | R（DocumentFilter） | [x] | [x] | [x] | - | [x] | [x] |
-
-※ clients との JOIN で clientName を返却（Document型に合わせる）
-
-#### スライス4-B: 月次サマリ
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 4B.1 | `documents:monthly-summary` | 集計 | [x] | [x] | [x] | - | [x] | [x] |
-
-#### スライス5: PDF生成
-| タスク | チャネル | 種別 | 実装 | Unit | 内部 | 外部 | 品質 | FE統合 |
-|--------|---------|------|:----:|:----:|:----:|:----:|:----:|:------:|
-| 5.1 | `documents:generate-pdf:{id}` | PDF出力 | [x] | [x] | [x] | - | [x] | [x] |
-
-※ 非表示 BrowserWindow で `renderer/templates/{type}.tsx` を描画 → `webContents.printToPDF({ pageSize: 'A4', marginsType: 0 })`
-※ Noto Sans JP を `resources/fonts/` から `@font-face` 読込
-※ 角印は `<img>` + `position:absolute` + `opacity:0.8`、座標は mm 単位
-※ 保存先: `app.getPath('documents')/事務ツール/{documentNumber}.pdf`
-※ 生成後 `documents.pdfFilePath` を更新
-
-**凡例**: 実装=IPCハンドラ実装 / Unit=ユニットテスト / 内部=内部結合テスト（DB込み） / 外部=外部APIテスト / 品質=品質担保（Lint/型チェック） / FE統合=レンダラーからの呼び出し確認
-**記号**: [ ]=未完了 / [x]=完了 / -=該当なし（外部API未使用）
-※ Phase 7で実装〜品質まで完了、Phase 8でFE統合を実施
-
-### 実装時の注意事項
-- **トランザクション**: スライス3（書類CRUD）は必ず `db.transaction(() => {...})()` を使用
-- **エラー伝播**: IPCハンドラは try/catch せず main の共通ラッパで集約（潔癖性原則）
-- **金額再計算**: バックエンドで `quantity * unitPrice` → `subtotalExclTax`、税率適用 → `subtotalInclTax` を再計算
-- **削除制約**: clients / items は documents から参照されていたら削除不可（FK制約確認）
-- **JSON列**: `documents.options` / `document_settings.defaultOptions` は JSON シリアライズで保存
-- **採番競合**: 同時生成は想定しないが、sequence 取得は単一トランザクション内で完結
-
-### E2Eテスト仕様書との対応
-| E2E仕様 | 該当スライス |
-|---------|------------|
-| `dashboard-e2e.md` | 4-A（list-recent）/ 4-B（monthly-summary） |
-| `document-create-e2e.md` | 1-B / 1-C / 1-D / 2 / 3 / 5 |
-| `document-history-e2e.md` | 4-A / 3.5 / 3.6 |
-| `document-detail-e2e.md` | 3.2 / 3.3 / 3.4 / 5 |
-| `settings-e2e.md` | 1-A / 1-B / 1-C / 1-D / 1-E |
-
----
-
-## 付録
-
-### 開発フロー
-```
-Phase 1: 要件定義 → Phase 2: Git管理 → Phase 3: フロントエンド基盤 → Phase 4: ページ実装
-→ Phase 5: 環境構築 → Phase 6: バックエンド計画 → Phase 7: バックエンド実装
-→ Phase 8: API統合 → Phase 9: E2Eテスト → Phase 10: ローカル動作確認 → Phase 11: デプロイメント
-
-※ サポートツールは必要に応じて適宜使用
-```
-
-### 開始手順
-開発プロンプトをクリックして「Phase 2: Git管理」を選択し、次のフェーズへ進みます。
+### シードデータ投入
+- テストデータは `tests/e2e/helpers/seed.ts` に集約
+- `window.ipc.invoke('clients:create', ...)` / `documents:create` を実IPCで呼ぶ
+- beforeAll でシード後、`page.reload()` で UI を最新状態に同期
+- 一時userData（mkdtemp）で各テスト実行を独立化 → 自動クリーンアップ
+- 書類IDはUUID生成のため、仕様書の例示（id=1等）は実装に合わせて UUID 集合で照合
