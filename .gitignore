@@ -61,3 +61,6 @@ tests/e2e/.artifacts/
 
 # PDF test outputs (local only)
 /*.pdf
+
+# Screenshots (local only)
+/*.png

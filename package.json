@@ -8,6 +8,9 @@
   "scripts": {
     "dev": "nextron --renderer-port 3055",
     "build": "nextron build",
+    "dist:win": "nextron build --win --x64",
+    "dist:mac": "nextron build --mac --x64 --arm64",
+    "dist:linux": "nextron build --linux --x64",
     "lint": "next lint renderer",
     "typecheck": "tsc --noEmit && tsc --noEmit -p renderer/tsconfig.json",
     "postinstall": "electron-builder install-app-deps"

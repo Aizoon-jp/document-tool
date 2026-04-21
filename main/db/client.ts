@@ -22,7 +22,7 @@ export function initDatabase(): DrizzleDb {
 
   const migrationsFolder = app.isPackaged
     ? path.join(process.resourcesPath, 'migrations')
-    : path.join(app.getAppPath(), '..', 'main', 'db', 'migrations')
+    : path.join(app.getAppPath(), 'main', 'db', 'migrations')
 
   migrate(db, { migrationsFolder })
 

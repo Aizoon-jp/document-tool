@@ -9,10 +9,29 @@ files:
     filter:
       - package.json
       - app
+extraResources:
+  - from: main/db/migrations
+    to: migrations
+    filter:
+      - "**/*"
 win:
   target:
     - nsis
+  icon: resources/icon.ico
 mac:
   target:
     - dmg
+  icon: resources/icon.icns
+  category: public.app-category.business
+linux:
+  target:
+    - AppImage
+  icon: resources/icon.ico
+  category: Office
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 事務ツール
 publish: null
