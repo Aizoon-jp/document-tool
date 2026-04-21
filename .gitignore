@@ -38,6 +38,10 @@ Thumbs.db
 # Playwright
 playwright-report/
 test-results/
+.playwright-mcp/
+
+# TypeScript incremental build info
+*.tsbuildinfo
 
 # Logs
 *.log
@@ -51,3 +55,12 @@ coverage/
 *.db-journal
 *.db-shm
 *.db-wal
+
+# Playwright test artifacts
+tests/e2e/.artifacts/
+
+# PDF test outputs (local only)
+/*.pdf
+
+# Screenshots (local only)
+/*.png

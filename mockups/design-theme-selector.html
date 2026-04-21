@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>デザインテーマ選択 — 事務ツール</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans',
+          'Noto Sans JP', sans-serif;
+        background: #f4f4f5;
+        color: #18181b;
+        padding: 48px 32px;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+      .title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: #71717a;
+        font-size: 14px;
+        margin-bottom: 32px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+      }
+      @media (max-width: 880px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .theme-card {
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow:
+          0 1px 3px rgba(0, 0, 0, 0.06),
+          0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .theme-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #e4e4e7;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .theme-name {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .theme-badge {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #18181b;
+        color: #fafafa;
+        font-weight: 600;
+      }
+      .preview {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        height: 280px;
+      }
+      .sidebar {
+        padding: 14px;
+        border-right: 1px solid var(--border);
+        background: var(--card);
+      }
+      .brand {
+        font-size: 13px;
+        font-weight: 600;
+        padding: 6px 8px;
+        margin-bottom: 10px;
+        color: var(--fg);
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        padding: 7px 10px;
+        margin-bottom: 2px;
+        border-radius: 6px;
+        color: var(--muted-fg);
+      }
+      .nav-item.active {
+        background: var(--primary);
+        color: var(--primary-fg);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        background: currentColor;
+        opacity: 0.7;
+      }
+      .content {
+        padding: 18px;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .content h2 {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .content p {
+        font-size: 11px;
+        color: var(--muted-fg);
+        margin-bottom: 12px;
+      }
+      .card-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .mini-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 10px;
+      }
+      .mini-card .label {
+        color: var(--muted-fg);
+        margin-bottom: 4px;
+      }
+      .mini-card .val {
+        font-weight: 600;
+        color: var(--fg);
+      }
+      .btn {
+        background: var(--primary);
+        color: var(--primary-fg);
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        margin-top: 10px;
+        cursor: pointer;
+      }
+
+      /* Theme 1: Slate */
+      .theme-1 {
+        --bg: #ffffff;
+        --fg: hsl(222.2, 47.4%, 11.2%);
+        --muted-fg: hsl(215.4, 16.3%, 46.9%);
+        --card: #ffffff;
+        --border: hsl(214.3, 31.8%, 91.4%);
+        --primary: hsl(221.2, 83.2%, 53.3%);
+        --primary-fg: hsl(210, 40%, 98%);
+      }
+
+      /* Theme 2: Zinc */
+      .theme-2 {
+        --bg: #ffffff;
+        --fg: hsl(240, 10%, 3.9%);
+        --muted-fg: hsl(240, 3.8%, 46.1%);
+        --card: #ffffff;
+        --border: hsl(240, 5.9%, 90%);
+        --primary: hsl(240, 5.9%, 10%);
+        --primary-fg: hsl(0, 0%, 98%);
+      }
+
+      /* Theme 3: Stone (暖色) */
+      .theme-3 {
+        --bg: #ffffff;
+        --fg: hsl(20, 14.3%, 4.1%);
+        --muted-fg: hsl(25, 5.3%, 44.7%);
+        --card: #ffffff;
+        --border: hsl(20, 5.9%, 90%);
+        --primary: hsl(24, 9.8%, 10%);
+        --primary-fg: hsl(60, 9.1%, 97.8%);
+      }
+
+      /* Theme 4: Neutral + 青アクセント */
+      .theme-4 {
+        --bg: hsl(0, 0%, 98%);
+        --fg: hsl(0, 0%, 9%);
+        --muted-fg: hsl(0, 0%, 45.1%);
+        --card: #ffffff;
+        --border: hsl(0, 0%, 89.8%);
+        --primary: hsl(210, 90%, 45%);
+        --primary-fg: hsl(0, 0%, 98%);
+      }
+
+      .footer {
+        margin-top: 32px;
+        text-align: center;
+        font-size: 13px;
+        color: #71717a;
+      }
+      .footer code {
+        background: #e4e4e7;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="title">デザインテーマ選択</h1>
+      <p class="subtitle">
+        4つのテーマから1つを選んでください。選択後、番号（1〜4）をAIに伝えてください。
+      </p>
+
+      <div class="grid">
+        <!-- Theme 1 -->
+        <div class="theme-card">
+          <div class="theme-header">
+            <div class="theme-name">1. Slate（推奨・現在のデフォルト）</div>
+            <div class="theme-badge">青みグレー + ブルー</div>
+          </div>
+          <div class="preview theme-1">
+            <div class="sidebar">
+              <div class="brand">事務ツール</div>
+              <div class="nav-item active">
+                <span class="dot"></span>ダッシュボード
+              </div>
+              <div class="nav-item"><span class="dot"></span>書類作成</div>
+              <div class="nav-item"><span class="dot"></span>書類履歴</div>
+              <div class="nav-item"><span class="dot"></span>設定</div>
+            </div>
+            <div class="content">
+              <h2>ダッシュボード</h2>
+              <p>最近の書類とクイック作成</p>
+              <div class="card-row">
+                <div class="mini-card">
+                  <div class="label">請求書</div>
+                  <div class="val">12 件</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">領収書</div>
+                  <div class="val">8 件</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">見積書</div>
+                  <div class="val">5 件</div>
+                </div>
+              </div>
+              <button class="btn">新規作成</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme 2 -->
+        <div class="theme-card">
+          <div class="theme-header">
+            <div class="theme-name">2. Zinc</div>
+            <div class="theme-badge">ニュートラルグレー + 黒</div>
+          </div>
+          <div class="preview theme-2">
+            <div class="sidebar">
+              <div class="brand">事務ツール</div>
+              <div class="nav-item active">
+                <span class="dot"></span>ダッシュボード
+              </div>
+              <div class="nav-item"><span class="dot"></span>書類作成</div>
+              <div class="nav-item"><span class="dot"></span>書類履歴</div>
+              <div class="nav-item"><span class="dot"></span>設定</div>
+            </div>
+            <div class="content">
+              <h2>ダッシュボード</h2>
+              <p>最近の書類とクイック作成</p>
+              <div class="card-row">
+                <div class="mini-card">
+                  <div class="label">請求書</div>
+                  <div class="val">12 件</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">領収書</div>
+                  <div class="val">8 件</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">見積書</div>
+                  <div class="val">5 件</div>
+                </div>
+              </div>
+              <button class="btn">新規作成</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme 3 -->
+        <div class="theme-card">
+          <div class="theme-header">
+            <div class="theme-name">3. Stone（暖色系・落ち着いた印象）</div>
+            <div class="theme-badge">ウォームグレー + 黒</div>
+          </div>
+          <div class="preview theme-3">
+            <div class="sidebar">
+              <div class="brand">事務ツール</div>
+              <div class="nav-item active">
+                <span class="dot"></span>ダッシュボード
+              </div>
+              <div class="nav-item"><span class="dot"></span>書類作成</div>
+              <div class="nav-item"><span class="dot"></span>書類履歴</div>
+              <div class="nav-item"><span class="dot"></span>設定</div>
+            </div>
+            <div class="content">
+              <h2>ダッシュボード</h2>
+              <p>最近の書類とクイック作成</p>
+              <div class="card-row">
+                <div class="mini-card">
+                  <div class="label">請求書</div>
+                  <div class="val">12 件</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">領収書</div>
+                  <div class="val">8 件</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">見積書</div>
+                  <div class="val">5 件</div>
+                </div>
+              </div>
+              <button class="btn">新規作成</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme 4 -->
+        <div class="theme-card">
+          <div class="theme-header">
+            <div class="theme-name">4. Neutral + 青アクセント</div>
+            <div class="theme-badge">真ニュートラル + 明るい青</div>
+          </div>
+          <div class="preview theme-4">
+            <div class="sidebar">
+              <div class="brand">事務ツール</div>
+              <div class="nav-item active">
+                <span class="dot"></span>ダッシュボード
+              </div>
+              <div class="nav-item"><span class="dot"></span>書類作成</div>
+              <div class="nav-item"><span class="dot"></span>書類履歴</div>
+              <div class="nav-item"><span class="dot"></span>設定</div>
+            </div>
+            <div class="content">
+              <h2>ダッシュボード</h2>
+              <p>最近の書類とクイック作成</p>
+              <div class="card-row">
+                <div class="mini-card">
+                  <div class="label">請求書</div>
+                  <div class="val">12 件</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">領収書</div>
+                  <div class="val">8 件</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">見積書</div>
+                  <div class="val">5 件</div>
+                </div>
+              </div>
+              <button class="btn">新規作成</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        番号を <code>1</code> / <code>2</code> / <code>3</code> /
+        <code>4</code> で AI に伝えてください
+      </div>
+    </div>
+  </body>
+</html>

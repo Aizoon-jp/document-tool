@@ -12,7 +12,7 @@
 ## プロジェクト設定
 
 技術スタック:
-  framework: Nextron (Next.js 14 App Router + Electron 30)
+  framework: Nextron (Next.js 14 Pages Router + Electron 30)
   frontend: React 18 + TypeScript 5 + Tailwind CSS v3 + shadcn/ui
   state: Zustand + TanStack Query
   form: React Hook Form + Zod
@@ -77,14 +77,18 @@
 │   └── config/
 │       └── index.ts
 ├── renderer/                    # Next.js（レンダラープロセス）
-│   ├── pages/ or app/
+│   ├── pages/                   # Next.js Pages Router（Nextron制約）
+│   ├── layouts/
 │   ├── components/
+│   │   └── ui/                  # shadcn/ui コンポーネント
 │   ├── lib/
+│   ├── hooks/
 │   ├── templates/               # 書類テンプレート（HTML/React）
 │   │   ├── invoice.tsx
 │   │   ├── receipt.tsx
 │   │   └── ...
 │   ├── types/index.ts
+│   ├── styles/globals.css
 │   └── config/index.ts
 ├── shared/
 │   └── types/ipc.ts             # メイン↔レンダラー共有型
