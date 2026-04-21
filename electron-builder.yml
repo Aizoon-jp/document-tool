@@ -26,7 +26,6 @@ mac:
 linux:
   target:
     - AppImage
-  icon: resources/icon.ico
   category: Office
 nsis:
   oneClick: false
