@@ -6,6 +6,7 @@ import * as stampsApi from './stamps'
 import * as settingsApi from './documentSettings'
 import * as documentsApi from './documents'
 import * as numbersApi from './documentsNumber'
+import { registerSettingsHandlers } from './settings'
 import { generatePdf } from '../pdf/generator'
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => Promise<unknown>
@@ -57,4 +58,6 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('documents:delete', wrap(documentsApi.deleteDocument))
   ipcMain.handle('documents:duplicate', wrap(documentsApi.duplicateDocument))
   ipcMain.handle('documents:generate-pdf', (_event, id: string) => generatePdf(id))
+
+  registerSettingsHandlers()
 }

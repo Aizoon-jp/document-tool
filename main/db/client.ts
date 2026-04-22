@@ -4,6 +4,7 @@ import Database from 'better-sqlite3'
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import * as schema from './schema'
+import { getDataDir } from '../config/dataDir'
 
 type DrizzleDb = BetterSQLite3Database<typeof schema>
 
@@ -13,7 +14,7 @@ let db: DrizzleDb | null = null
 export function initDatabase(): DrizzleDb {
   if (db) return db
 
-  const dbPath = path.join(app.getPath('userData'), 'data.db')
+  const dbPath = path.join(getDataDir(), 'data.db')
   sqlite = new Database(dbPath)
   sqlite.pragma('journal_mode = WAL')
   sqlite.pragma('foreign_keys = ON')
