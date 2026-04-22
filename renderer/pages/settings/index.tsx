@@ -1,11 +1,12 @@
 import Head from 'next/head'
-import { Building2, FileCog, Package, Stamp, Users } from 'lucide-react'
+import { Building2, FileCog, HardDrive, Package, Stamp, Users } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import { SettingsCompanyTab } from '../../components/settings/SettingsCompanyTab'
 import { SettingsClientsTab } from '../../components/settings/SettingsClientsTab'
 import { SettingsItemsTab } from '../../components/settings/SettingsItemsTab'
 import { SettingsStampsTab } from '../../components/settings/SettingsStampsTab'
 import { SettingsDocumentTypesTab } from '../../components/settings/SettingsDocumentTypesTab'
+import { SettingsDataTab } from '../../components/settings/SettingsDataTab'
 
 const TABS = [
   { id: 'company', label: '会社基本情報', icon: Building2 },
@@ -13,6 +14,7 @@ const TABS = [
   { id: 'items', label: '品目マスタ', icon: Package },
   { id: 'stamps', label: '印影管理', icon: Stamp },
   { id: 'document-settings', label: '書類別設定', icon: FileCog },
+  { id: 'data', label: 'データ', icon: HardDrive },
 ] as const
 
 export default function SettingsPage() {
@@ -53,6 +55,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="document-settings">
             <SettingsDocumentTypesTab />
+          </TabsContent>
+          <TabsContent value="data">
+            <SettingsDataTab />
           </TabsContent>
         </Tabs>
       </div>

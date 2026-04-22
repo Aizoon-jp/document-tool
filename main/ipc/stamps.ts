@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
-import { app } from 'electron'
 import { asc, desc, eq } from 'drizzle-orm'
+import { getDataDir } from '../config/dataDir'
 import type { Stamp } from '../../renderer/types'
 import type {
   StampCreateInput,
@@ -14,7 +14,7 @@ import { nowIso } from '../helpers/serialize'
 const MAX_SIZE_BYTES = 5 * 1024 * 1024
 
 function stampsDir(): string {
-  const dir = path.join(app.getPath('userData'), 'stamps')
+  const dir = path.join(getDataDir(), 'stamps')
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
   }

@@ -27,6 +27,12 @@ export interface StampUpdateInput extends Partial<StampInput> {
   imageDataUrl?: string
 }
 
+export interface DataDirStatus {
+  current: string
+  default: string
+  isCustom: boolean
+}
+
 export interface IpcApi {
   'app:getVersion': () => Promise<string>
 
@@ -72,6 +78,14 @@ export interface IpcApi {
   'documents:delete': (id: string) => Promise<void>
   'documents:duplicate': (id: string) => Promise<Document>
   'documents:generate-pdf': (id: string) => Promise<{ filePath: string }>
+
+  'settings:get-data-dir': () => Promise<DataDirStatus>
+  'settings:choose-data-dir': () => Promise<string | null>
+  'settings:change-data-dir': (
+    newPath: string,
+    mode: 'move' | 'use-existing'
+  ) => Promise<void>
+  'settings:reset-data-dir': () => Promise<void>
 }
 
 export type IpcChannel = keyof IpcApi

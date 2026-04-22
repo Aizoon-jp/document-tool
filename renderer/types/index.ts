@@ -251,4 +251,16 @@ export const API_PATHS = {
     list: 'document-settings:list',
     update: 'document-settings:update',
   },
+  settings: {
+    getDataDir: 'settings:get-data-dir',
+    chooseDataDir: 'settings:choose-data-dir',
+    changeDataDir: 'settings:change-data-dir',
+    resetDataDir: 'settings:reset-data-dir',
+  },
 } as const
+
+export interface DataDirStatus {
+  current: string
+  default: string
+  isCustom: boolean
+}
