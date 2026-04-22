@@ -41,6 +41,7 @@ import {
 import { DocumentPreview } from '../../components/documents/DocumentPreview'
 import { DocumentLinesField } from '../../components/documents/DocumentLinesField'
 import { useClients } from '../../hooks/useClients'
+import { useCompany } from '../../hooks/useCompany'
 import { useItems } from '../../hooks/useItems'
 import { useStamps } from '../../hooks/useStamps'
 import {
@@ -121,6 +122,7 @@ export default function NewDocumentPage() {
   const { data: clients = [] } = useClients()
   const { data: items = [] } = useItems()
   const { data: stamps = [] } = useStamps()
+  const { data: company = null } = useCompany()
   const createMutation = useCreateDocument()
   const pdfMutation = useGeneratePdf()
   const [isProcessing, setIsProcessing] = useState(false)
@@ -545,6 +547,7 @@ export default function NewDocumentPage() {
                   <DocumentPreview
                     values={values}
                     client={selectedClient}
+                    company={company}
                     stamps={selectedStamps}
                   />
                 </CardContent>
