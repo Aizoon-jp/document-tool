@@ -110,7 +110,7 @@ export const SettingsCompanyTab = () => {
     setValue,
     watch,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
     defaultValues: EMPTY_FORM,
@@ -218,7 +218,7 @@ export const SettingsCompanyTab = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={updateMutation.isPending || !isDirty}>
+        <Button type="submit" disabled={updateMutation.isPending}>
           <Save className="h-4 w-4" />
           {updateMutation.isPending ? '保存中...' : '保存'}
         </Button>
