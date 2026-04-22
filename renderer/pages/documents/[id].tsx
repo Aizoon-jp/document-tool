@@ -28,6 +28,7 @@ import {
   DocumentLine,
 } from '../../types'
 import { useClients } from '../../hooks/useClients'
+import { useCompany } from '../../hooks/useCompany'
 import { useStamps } from '../../hooks/useStamps'
 import {
   useDeleteDocument,
@@ -127,6 +128,7 @@ export default function DocumentDetailPage() {
   const { data: lines = [] } = useDocumentLines(id)
   const { data: clients = [] } = useClients()
   const { data: stamps = [] } = useStamps()
+  const { data: company = null } = useCompany()
 
   const deleteMutation = useDeleteDocument()
   const duplicateMutation = useDuplicateDocument()
@@ -372,6 +374,7 @@ export default function DocumentDetailPage() {
                 <DocumentPreview
                   values={previewValues}
                   client={client}
+                  company={company}
                   stamps={previewStamps}
                 />
               </CardContent>

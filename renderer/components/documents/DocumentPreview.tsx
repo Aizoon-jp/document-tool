@@ -1,6 +1,7 @@
 import { format } from 'date-fns'
 import {
   Client,
+  Company,
   DOCUMENT_TYPE_LABEL,
   DocumentType,
   Stamp,
@@ -11,7 +12,13 @@ import { calcLine, calcWithholdingTax, formatCurrency } from './utils'
 interface Props {
   values: DocumentFormValues
   client: Client | null
+  company: Company | null
   stamps: Stamp[]
+}
+
+const BANK_ACCOUNT_TYPE_LABEL: Record<'ordinary' | 'checking', string> = {
+  ordinary: '普通',
+  checking: '当座',
 }
 
 const formatDate = (iso: string): string => {
@@ -31,7 +38,7 @@ const DOCUMENT_TITLE: Record<DocumentType, string> = {
   delivery_note: '納 品 書',
 }
 
-export const DocumentPreview = ({ values, client, stamps }: Props) => {
+export const DocumentPreview = ({ values, client, company, stamps }: Props) => {
   const { lines, detailMode, externalAmount, options } = values
 
   const lineTotals = lines.map((l) =>
@@ -75,8 +82,25 @@ export const DocumentPreview = ({ values, client, stamps }: Props) => {
             <div>発行日：{formatDate(values.issueDate)}</div>
             <div className="font-mono">No. {values.documentNumber}</div>
             <div className="mt-2 border-t border-slate-300 pt-1 text-[10px] text-slate-700">
-              <div className="font-medium">合同会社アイゾーン</div>
-              <div>〒460-0002 名古屋市中区丸の内</div>
+              {company ? (
+                <>
+                  <div className="font-medium">{company.name}</div>
+                  {(company.postalCode || company.address) && (
+                    <div>
+                      {company.postalCode && `〒${company.postalCode} `}
+                      {company.address}
+                    </div>
+                  )}
+                  {company.tel && <div>TEL: {company.tel}</div>}
+                  {company.invoiceNumber && (
+                    <div>登録番号: {company.invoiceNumber}</div>
+                  )}
+                </>
+              ) : (
+                <div className="text-slate-400">
+                  会社情報未登録（設定から登録してください）
+                </div>
+              )}
             </div>
             {stamps.length > 0 && (
               <div className="pointer-events-none absolute -right-1 bottom-0 flex gap-1">
@@ -185,8 +209,24 @@ export const DocumentPreview = ({ values, client, stamps }: Props) => {
         {options.showBankInfo && (
           <div className="mt-3 rounded border border-slate-300 bg-slate-50 p-2 text-[10px]">
             <div className="mb-0.5 font-medium">お振込先</div>
-            <div>〇〇銀行 〇〇支店 普通 1234567</div>
-            <div>名義：カ）アイゾーン</div>
+            {company?.bankName ? (
+              <>
+                <div>
+                  {company.bankName}
+                  {company.bankBranch && ` ${company.bankBranch}`}
+                  {company.bankAccountType &&
+                    ` ${BANK_ACCOUNT_TYPE_LABEL[company.bankAccountType as 'ordinary' | 'checking'] ?? ''}`}
+                  {company.bankAccountNumber && ` ${company.bankAccountNumber}`}
+                </div>
+                {company.bankAccountHolderKana && (
+                  <div>名義：{company.bankAccountHolderKana}</div>
+                )}
+              </>
+            ) : (
+              <div className="text-slate-400">
+                振込先未登録（設定から登録してください）
+              </div>
+            )}
           </div>
         )}
 
