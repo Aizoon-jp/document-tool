@@ -1,10 +1,11 @@
 import fs from 'fs'
 import path from 'path'
-import { app, protocol, session } from 'electron'
+import { app, Menu, protocol, session } from 'electron'
 import { createWindow } from './helpers/create-window'
 import { closeDatabase, initDatabase } from './db/client'
 import { registerIpcHandlers } from './ipc'
 import { seedDefaultDocumentSettings } from './ipc/documentSettings'
+import { buildAppMenu } from './menu'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -98,6 +99,8 @@ const registerAppProtocol = (): void => {
   if (isProd) {
     registerAppProtocol()
   }
+
+  Menu.setApplicationMenu(buildAppMenu())
 
   initDatabase()
   await seedDefaultDocumentSettings()
