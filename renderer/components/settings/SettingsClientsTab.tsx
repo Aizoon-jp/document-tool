@@ -53,6 +53,7 @@ const clientSchema = z.object({
   contactDepartment: z.string(),
   paymentTerms: z.string(),
   defaultTaxCategory: z.enum(['taxable_10', 'taxable_8', 'tax_free']),
+  numberPrefix: z.string(),
   notes: z.string(),
 })
 
@@ -68,6 +69,7 @@ const toFormValues = (c: Client | null): ClientFormValues => ({
   contactDepartment: c?.contactDepartment ?? '',
   paymentTerms: c?.paymentTerms ?? '',
   defaultTaxCategory: (c?.defaultTaxCategory ?? 'taxable_10') as TaxCategory,
+  numberPrefix: c?.numberPrefix ?? '',
   notes: c?.notes ?? '',
 })
 
@@ -81,6 +83,7 @@ const toInput = (v: ClientFormValues): ClientInput => ({
   contactDepartment: v.contactDepartment || null,
   paymentTerms: v.paymentTerms || null,
   defaultTaxCategory: v.defaultTaxCategory,
+  numberPrefix: v.numberPrefix.trim() || null,
   notes: v.notes || null,
 })
 
@@ -335,6 +338,17 @@ const ClientDialog = ({ open, onOpenChange, target }: DialogProps) => {
               {...register('paymentTerms')}
               placeholder="月末締め翌月末払い"
             />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>書類番号プレフィックス</Label>
+            <Input
+              {...register('numberPrefix')}
+              placeholder="例: A- （空欄でも履歴から自動追従されます）"
+            />
+            <p className="text-xs text-muted-foreground">
+              入力すると「プレフィックス + 連番」で独立採番します。
+              空欄の場合、この取引先で過去に作成した書類があれば、その番号の末尾数字を自動インクリメントして提案します（1枚目を手入力すれば2枚目以降が追従）。
+            </p>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label>備考</Label>

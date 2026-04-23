@@ -63,7 +63,10 @@ export interface IpcApi {
     input: DocumentSettingInput
   ) => Promise<DocumentSetting>
 
-  'documents:next-number': (type: DocumentType) => Promise<NextDocumentNumber>
+  'documents:next-number': (
+    type: DocumentType,
+    clientId?: string
+  ) => Promise<NextDocumentNumber>
   'documents:list': (sort?: DocumentSort) => Promise<Document[]>
   'documents:list-recent': (limit?: number) => Promise<Document[]>
   'documents:search': (

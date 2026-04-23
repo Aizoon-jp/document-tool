@@ -25,14 +25,6 @@
 ポート設定（開発時Next.js devサーバー）:
   frontend: 3055
 
-## テスト認証情報（将来SaaS化時の開発用）
-
-開発用アカウント:
-  email: test@事務ツール.local
-  password: oLL1vHCGkxcFbGYM
-
-※ 現時点のローカル版は認証なしで動作。SaaS化時に有効化。
-
 ## 環境変数
 
 ### ローカル版（現時点）

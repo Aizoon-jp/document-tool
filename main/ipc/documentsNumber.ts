@@ -1,4 +1,4 @@
-import { and, eq, like } from 'drizzle-orm'
+import { and, desc, eq, like } from 'drizzle-orm'
 import type { DocumentType, NextDocumentNumber } from '../../renderer/types'
 import { getDatabase, schema } from '../db/client'
 
@@ -25,8 +25,48 @@ export function formatNumber(
     .replace(/\{seq\}/g, sequence.toString())
 }
 
+async function loadClientPrefix(clientId: string | undefined): Promise<string> {
+  if (!clientId) return ''
+  const db = getDatabase()
+  const rows = await db
+    .select({ numberPrefix: schema.clients.numberPrefix })
+    .from(schema.clients)
+    .where(eq(schema.clients.id, clientId))
+    .limit(1)
+  return rows[0]?.numberPrefix?.trim() ?? ''
+}
+
+async function findLatestClientDocumentNumber(
+  type: DocumentType,
+  clientId: string
+): Promise<string | null> {
+  const db = getDatabase()
+  const rows = await db
+    .select({ documentNumber: schema.documents.documentNumber })
+    .from(schema.documents)
+    .where(
+      and(
+        eq(schema.documents.documentType, type),
+        eq(schema.documents.clientId, clientId)
+      )
+    )
+    .orderBy(desc(schema.documents.createdAt))
+    .limit(1)
+  return rows[0]?.documentNumber ?? null
+}
+
+function incrementTailNumber(docNumber: string): string | null {
+  const match = docNumber.match(/^(.*?)(\d+)(\D*)$/)
+  if (!match) return null
+  const [, head, seqStr, tail] = match
+  const digits = seqStr.length
+  const seq = parseInt(seqStr, 10) + 1
+  return `${head}${seq.toString().padStart(digits, '0')}${tail}`
+}
+
 export async function getNextDocumentNumber(
   type: DocumentType,
+  clientId?: string,
   now: Date = new Date()
 ): Promise<NextDocumentNumber> {
   const db = getDatabase()
@@ -38,9 +78,24 @@ export async function getNextDocumentNumber(
   if (setting.length === 0) {
     throw new Error(`書類別設定が未登録です: ${type}`)
   }
-  const format = setting[0].numberFormat
+  const baseFormat = setting[0].numberFormat
   const { yyyy, mm } = yearMonth(now)
+  const clientPrefix = await loadClientPrefix(clientId)
 
+  if (!clientPrefix && clientId) {
+    const latest = await findLatestClientDocumentNumber(type, clientId)
+    const incremented = latest ? incrementTailNumber(latest) : null
+    if (incremented) {
+      return {
+        documentType: type,
+        yearMonth: `${yyyy}-${mm}`,
+        sequence: 0,
+        formatted: incremented,
+      }
+    }
+  }
+
+  const format = clientPrefix ? `${clientPrefix}${baseFormat}` : baseFormat
   const prefix = format
     .split('{seq')[0]
     .replace(/\{YYYY\}/g, yyyy)

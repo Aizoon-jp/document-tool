@@ -48,11 +48,11 @@ export const Sidebar = () => {
   const router = useRouter()
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r bg-card">
-      <div className="flex h-14 items-center border-b px-6">
+    <aside className="flex w-48 shrink-0 flex-col border-r bg-card">
+      <div className="flex h-14 items-center border-b px-4">
         <span className="text-base font-semibold">事務ツール</span>
       </div>
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-1 p-2">
         {NAV_ITEMS.map(({ href, label, icon: Icon, match }) => {
           const active = match(router.pathname)
           return (
@@ -72,8 +72,8 @@ export const Sidebar = () => {
           )
         })}
       </nav>
-      <div className="border-t p-3 text-xs text-muted-foreground">
-        v0.1.0 — ローカル版
+      <div className="border-t p-2 text-xs text-muted-foreground">
+        v0.1.4 — ローカル版
       </div>
     </aside>
   )
