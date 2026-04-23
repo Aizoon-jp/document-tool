@@ -237,7 +237,7 @@ useEffect(() => {
 **成功パターン**（renderer → main の順で個別ビルド）:
 ```bash
 cd renderer && NODE_ENV=production npx next build
-node /home/kazuhiro/事務ツール/node_modules/nextron/bin/webpack.config.js
+node node_modules/nextron/bin/webpack.config.js
 ```
 
 **重要なポイント**:

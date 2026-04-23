@@ -16,6 +16,7 @@ function toClient(row: typeof schema.clients.$inferSelect): Client {
     contactDepartment: row.contactDepartment,
     paymentTerms: row.paymentTerms,
     defaultTaxCategory: row.defaultTaxCategory as TaxCategory,
+    numberPrefix: row.numberPrefix,
     notes: row.notes,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

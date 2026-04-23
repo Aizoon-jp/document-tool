@@ -41,6 +41,7 @@ export const clients = sqliteTable('clients', {
   contactDepartment: text('contact_department'),
   paymentTerms: text('payment_terms'),
   defaultTaxCategory: text('default_tax_category').notNull().default('taxable_10'),
+  numberPrefix: text('number_prefix'),
   notes: text('notes'),
   ...timestamps,
 })

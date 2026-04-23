@@ -169,7 +169,7 @@ export async function seedSecondStamp(page: Page): Promise<Stamp> {
  *
  * spec (docs/e2e-specs/document-history-e2e.md) の各テストケースが要求する
  * 値を 1 つも残さず満たすよう、取引先 3 件（c1:株式会社サンプル / c2:有限会社
- * テスト商事 / c3:合同会社アイゾーン）と書類 15 件（d001..d015）を投入する。
+ * テスト商事 / c3:合同会社ダミー）と書類 15 件（d001..d015）を投入する。
  *
  * 各行の総額 (`totalAmount`) は IPC 側で `calculateTotals` が再計算するため、
  * ここでは `unitPrice × quantity` が spec の表示金額を満たすよう逆算して
@@ -179,7 +179,7 @@ export async function seedSecondStamp(page: Page): Promise<Stamp> {
  * d001 以外の行にも spec の TC-002 〜 TC-006 全てが要求する条件（取引先・
  * 書類種別・発行日・金額レンジ）を矛盾なく埋め込む:
  *   - サンプル: d001, d004, d007, d010, d013 (TC-002: 5件)
- *   - アイゾーン: d006, d009, d012 (TC-006: サンプル×請求書 ≠ アイゾーン×請求書=3件)
+ *   - ダミー: d006, d009, d012 (TC-006: サンプル×請求書 ≠ ダミー×請求書=3件)
  *   - テスト商事: d002, d003, d005, d008, d011, d014, d015 (残 7 件)
  *   - invoice 5: d001/d006/d009/d012/d015 (TC-004)
  *   - receipt 3: d003/d008/d014 (TC-004)
@@ -196,7 +196,7 @@ export async function seedSecondStamp(page: Page): Promise<Stamp> {
 export interface SeededHistoryData {
   clientSample: Client // 株式会社サンプル (c1)
   clientTest: Client // 有限会社テスト商事 (c2)
-  clientAizoon: Client // 合同会社アイゾーン (c3)
+  clientDummy: Client // 合同会社ダミー (c3)
   documents: Document[] // 降順 (d001..d015)
 }
 
@@ -236,9 +236,9 @@ export async function seedHistoryData(
       'clients:create',
       mkClient('有限会社テスト商事', '御中')
     )
-    const clientAizoon = await ipc.invoke<Client>(
+    const clientDummy = await ipc.invoke<Client>(
       'clients:create',
-      mkClient('合同会社アイゾーン', '御中')
+      mkClient('合同会社ダミー', '御中')
     )
 
     type Row = {
@@ -253,7 +253,7 @@ export async function seedHistoryData(
 
     const c1 = clientSample.id
     const c2 = clientTest.id
-    const c3 = clientAizoon.id
+    const c3 = clientDummy.id
 
     // 15 件を発行日降順で定義。spec の各 TC が要求する条件を満たす値を直接記述。
     const rows: Row[] = [
@@ -312,7 +312,7 @@ export async function seedHistoryData(
       documents.push(doc)
     }
 
-    return { clientSample, clientTest, clientAizoon, documents }
+    return { clientSample, clientTest, clientDummy, documents }
   })
 }
 
@@ -356,7 +356,7 @@ export function getSeededDocumentIds(
  * P-005 設定 E2E 用のシード。
  *
  * spec (docs/e2e-specs/settings-e2e.md) の TC-001/002 が前提とする:
- *   - 取引先マスタ 3件（株式会社サンプル / 有限会社テスト商事 / 合同会社アイゾーン）
+ *   - 取引先マスタ 3件（株式会社サンプル / 有限会社テスト商事 / 合同会社ダミー）
  *   - 品目マスタ 5件（i1:Web制作 / i2..i4:通常税率10% / i5:会議用弁当 軽減税率8%）
  *   - 印影 2件（seedDefaultStamp + seedSecondStamp, 計 isDefault=1 / 非default=1）
  *   - 書類別設定 5件（main/ipc/documentSettings.ts の seedDefaultDocumentSettings で自動投入）
@@ -394,7 +394,7 @@ export async function seedSettingsData(page: Page): Promise<void> {
         notes: null,
       },
       {
-        name: '合同会社アイゾーン',
+        name: '合同会社ダミー',
         honorific: '御中',
         postalCode: null,
         address: null,

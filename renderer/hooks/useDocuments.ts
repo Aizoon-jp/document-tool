@@ -62,10 +62,13 @@ export const useDocumentLines = (id: string | undefined) =>
     enabled: Boolean(id),
   })
 
-export const useNextDocumentNumber = (type: DocumentType) =>
+export const useNextDocumentNumber = (
+  type: DocumentType,
+  clientId?: string
+) =>
   useQuery({
-    queryKey: queryKeys.documents.nextNumber(type),
-    queryFn: () => getNextDocumentNumber(type),
+    queryKey: queryKeys.documents.nextNumber(type, clientId),
+    queryFn: () => getNextDocumentNumber(type, clientId),
   })
 
 export const useCreateDocument = () => {

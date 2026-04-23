@@ -60,6 +60,7 @@ export interface Client {
   contactDepartment: string | null
   paymentTerms: string | null
   defaultTaxCategory: TaxCategory
+  numberPrefix: string | null
   notes: string | null
   createdAt: string
   updatedAt: string

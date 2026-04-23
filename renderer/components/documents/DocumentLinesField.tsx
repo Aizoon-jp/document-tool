@@ -57,16 +57,7 @@ export const DocumentLinesField = ({ control, items }: Props) => {
     })
 
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-[minmax(0,1fr)_80px_60px_100px_110px_32px] gap-2 px-1 text-xs text-muted-foreground">
-        <span>品目</span>
-        <span className="text-right">数量</span>
-        <span className="text-center">単位</span>
-        <span className="text-right">単価</span>
-        <span className="text-right">金額</span>
-        <span />
-      </div>
-
+    <div className="space-y-3">
       {fields.length === 0 && (
         <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           明細行がありません。下のボタンから追加してください。
@@ -82,59 +73,84 @@ export const DocumentLinesField = ({ control, items }: Props) => {
         return (
           <div
             key={f.id}
-            className="grid grid-cols-[minmax(0,1fr)_80px_60px_100px_110px_32px] items-start gap-2"
+            className="space-y-2 rounded-md border bg-card p-3"
           >
-            <div className="space-y-1">
-              <Select
-                value={line?.itemId ?? ''}
-                onValueChange={(v) => handlePickItem(idx, v)}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                明細 {idx + 1}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => remove(idx)}
+                aria-label="明細行を削除"
               >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="品目マスタから選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {items.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>
-                      {i.name}（{formatCurrency(i.unitPrice)}）
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                削除
+              </Button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">品目</label>
               <Input
                 className="h-9"
-                placeholder="品目名を直接入力"
+                placeholder="品目名を入力（自由記載可）"
                 {...control.register(`lines.${idx}.content`)}
               />
+              {items.length > 0 && (
+                <Select
+                  value={line?.itemId ?? ''}
+                  onValueChange={(v) => handlePickItem(idx, v)}
+                >
+                  <SelectTrigger className="h-8 text-xs text-muted-foreground">
+                    <SelectValue placeholder="品目マスタから選択（任意）" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {items.map((i) => (
+                      <SelectItem key={i.id} value={i.id}>
+                        {i.name}（{formatCurrency(i.unitPrice)}）
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
-            <Input
-              className="h-9 text-right"
-              type="number"
-              step="1"
-              {...control.register(`lines.${idx}.quantity`)}
-            />
-            <Input
-              className="h-9 text-center"
-              {...control.register(`lines.${idx}.unit`)}
-            />
-            <Input
-              className="h-9 text-right"
-              type="number"
-              step="1"
-              {...control.register(`lines.${idx}.unitPrice`)}
-            />
-            <div className="flex h-9 items-center justify-end rounded-md border bg-muted/40 px-2 text-sm">
-              {formatCurrency(lineTotal)}
+
+            <div className="grid grid-cols-[80px_60px_minmax(0,1fr)_minmax(0,1fr)] gap-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">数量</label>
+                <Input
+                  className="h-9 text-right"
+                  type="number"
+                  step="1"
+                  {...control.register(`lines.${idx}.quantity`)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">単位</label>
+                <Input
+                  className="h-9 text-center"
+                  {...control.register(`lines.${idx}.unit`)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">単価</label>
+                <Input
+                  className="h-9 text-right"
+                  type="number"
+                  step="1"
+                  {...control.register(`lines.${idx}.unitPrice`)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">金額</label>
+                <div className="flex h-9 items-center justify-end rounded-md border bg-muted/40 px-2 text-sm">
+                  {formatCurrency(lineTotal)}
+                </div>
+              </div>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-8 text-muted-foreground hover:text-destructive"
-              onClick={() => remove(idx)}
-              aria-label="明細行を削除"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </div>
         )
       })}

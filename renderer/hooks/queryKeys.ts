@@ -29,7 +29,7 @@ export const queryKeys = {
       ['documents', 'monthly-summary', yearMonth] as const,
     detail: (id: string) => ['documents', id] as const,
     lines: (id: string) => ['documents', id, 'lines'] as const,
-    nextNumber: (type: DocumentType) =>
-      ['documents', 'next-number', type] as const,
+    nextNumber: (type: DocumentType, clientId?: string) =>
+      ['documents', 'next-number', type, clientId ?? ''] as const,
   },
 } as const

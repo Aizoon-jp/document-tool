@@ -402,18 +402,18 @@ test('E2E-DOC-HIST-005: 金額範囲フィルタ', async () => {
  * spec (docs/e2e-specs/document-history-e2e.md §TC E2E-DOC-HIST-006):
  *   - 事前状態: `/documents` で初期表示済（15件）
  *   - 手順:
- *       1. `#f-client` に `アイゾーン` を入力
+ *       1. `#f-client` に `ダミー` を入力
  *       2. `#f-type` を開いて `請求書` を選択
  *       3. `getByRole('button', { name: 'リセット' })` をクリック
  *   - 期待結果:
- *       - 手順1〜2後: tbody が 3 行（d006 / d009 / d012: 合同会社アイゾーン × invoice）、
+ *       - 手順1〜2後: tbody が 3 行（d006 / d009 / d012: 合同会社ダミー × invoice）、
  *         件数表示 `15件中 3件を表示`
  *       - リセット後: tbody が 15 行に復帰、件数表示 `15件中 15件を表示`
  *       - `#f-client` が空、期間の両 input が空、`#f-type` の表示値が `全て`、
  *         金額範囲の両 Input が空
  *
  * seed (tests/e2e/helpers/seed.ts::seedHistoryData) における
- * 「合同会社アイゾーン (c3)」× `invoice` の組合せは d006 / d009 / d012 の 3 件。
+ * 「合同会社ダミー (c3)」× `invoice` の組合せは d006 / d009 / d012 の 3 件。
  */
 test('E2E-DOC-HIST-006: 複合条件＋リセット', async () => {
   if (!ctx || !seeded) throw new Error('Electron context not initialized')
@@ -432,8 +432,8 @@ test('E2E-DOC-HIST-006: 複合条件＋リセット', async () => {
 
   const rows = page.locator('tbody > tr')
 
-  await test.step('#f-client に「アイゾーン」を入力', async () => {
-    await page.locator('#f-client').fill('アイゾーン')
+  await test.step('#f-client に「ダミー」を入力', async () => {
+    await page.locator('#f-client').fill('ダミー')
   })
 
   await test.step('#f-type を開いて「請求書」を選択', async () => {
@@ -441,7 +441,7 @@ test('E2E-DOC-HIST-006: 複合条件＋リセット', async () => {
     await page.getByRole('option', { name: '請求書', exact: true }).click()
   })
 
-  await test.step('複合条件適用後: tbody が 3 行（アイゾーン × 請求書）', async () => {
+  await test.step('複合条件適用後: tbody が 3 行（ダミー × 請求書）', async () => {
     await expect(rows).toHaveCount(3, { timeout: 10000 })
   })
 
@@ -451,13 +451,13 @@ test('E2E-DOC-HIST-006: 複合条件＋リセット', async () => {
     ).toBeVisible()
   })
 
-  await test.step('3 行すべて 取引先=合同会社アイゾーン / 種別=請求書', async () => {
+  await test.step('3 行すべて 取引先=合同会社ダミー / 種別=請求書', async () => {
     const count = await rows.count()
     expect(count).toBe(3)
     for (let i = 0; i < count; i++) {
       await expect(rows.nth(i).locator('td:nth-child(2)')).toHaveText('請求書')
       await expect(rows.nth(i).locator('td:nth-child(3)')).toHaveText(
-        '合同会社アイゾーン'
+        '合同会社ダミー'
       )
     }
   })

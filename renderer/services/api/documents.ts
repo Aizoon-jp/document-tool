@@ -84,11 +84,13 @@ export async function generateDocumentPdf(
 }
 
 export async function getNextDocumentNumber(
-  type: DocumentType
+  type: DocumentType,
+  clientId?: string
 ): Promise<NextDocumentNumber> {
   return window.ipc.invoke<NextDocumentNumber>(
     API_PATHS.documents.nextNumber,
-    type
+    type,
+    clientId
   )
 }
 

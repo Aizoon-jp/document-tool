@@ -135,13 +135,17 @@ export default function NewDocumentPage() {
   const { control, register, setValue, handleSubmit, watch } = form
 
   const currentType = watch('documentType')
-  const { data: nextNumber } = useNextDocumentNumber(currentType)
+  const currentClientId = watch('clientId')
+  const { data: nextNumber } = useNextDocumentNumber(
+    currentType,
+    currentClientId || undefined
+  )
 
   useEffect(() => {
-    if (nextNumber && !watch('documentNumber')) {
+    if (nextNumber) {
       setValue('documentNumber', nextNumber.formatted)
     }
-  }, [nextNumber, setValue, watch])
+  }, [nextNumber, setValue])
 
   useEffect(() => {
     const defaults = stamps.filter((s) => s.isDefault).map((s) => s.id)
@@ -252,7 +256,10 @@ export default function NewDocumentPage() {
       next === 'invoice' || next === 'payment_request'
     )
     try {
-      const n = await getNextDocumentNumber(next)
+      const n = await getNextDocumentNumber(
+        next,
+        watch('clientId') || undefined
+      )
       setValue('documentNumber', n.formatted)
     } catch {
       setValue('documentNumber', '')
@@ -309,7 +316,7 @@ export default function NewDocumentPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
             <div className="space-y-6">
               <Card>
                 <CardHeader>

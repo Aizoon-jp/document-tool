@@ -79,7 +79,7 @@ export function buildAppMenu(): Menu {
               type: 'info' as const,
               title: '事務ツールについて',
               message: '事務ツール',
-              detail: `バージョン: ${app.getVersion()}\n© 2026 Aizoon-jp`,
+              detail: `バージョン: ${app.getVersion()}\nローカル書類作成ツール`,
               buttons: ['OK'],
             }
             if (focused) {
