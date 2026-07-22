@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, ScanLine, Trash2 } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -36,7 +36,9 @@ import {
   useDeleteClient,
   useUpdateClient,
 } from '../../hooks/useClients'
+import { BusinessCardScanDialog } from './BusinessCardScanDialog'
 import type {
+  BusinessCardScan,
   Client,
   ClientInput,
   Honorific,
@@ -59,18 +61,21 @@ const clientSchema = z.object({
 
 type ClientFormValues = z.infer<typeof clientSchema>
 
-const toFormValues = (c: Client | null): ClientFormValues => ({
-  name: c?.name ?? '',
+const toFormValues = (
+  c: Client | null,
+  scan?: BusinessCardScan | null
+): ClientFormValues => ({
+  name: c?.name ?? scan?.name ?? '',
   honorific: (c?.honorific ?? '御中') as Honorific,
-  postalCode: c?.postalCode ?? '',
-  address: c?.address ?? '',
-  tel: c?.tel ?? '',
-  contactPerson: c?.contactPerson ?? '',
-  contactDepartment: c?.contactDepartment ?? '',
+  postalCode: c?.postalCode ?? scan?.postalCode ?? '',
+  address: c?.address ?? scan?.address ?? '',
+  tel: c?.tel ?? scan?.tel ?? '',
+  contactPerson: c?.contactPerson ?? scan?.contactPerson ?? '',
+  contactDepartment: c?.contactDepartment ?? scan?.contactDepartment ?? '',
   paymentTerms: c?.paymentTerms ?? '',
   defaultTaxCategory: (c?.defaultTaxCategory ?? 'taxable_10') as TaxCategory,
   numberPrefix: c?.numberPrefix ?? '',
-  notes: c?.notes ?? '',
+  notes: c?.notes ?? scan?.notes ?? '',
 })
 
 const toInput = (v: ClientFormValues): ClientInput => ({
@@ -98,14 +103,24 @@ export const SettingsClientsTab = () => {
   const deleteMutation = useDeleteClient()
   const [editing, setEditing] = useState<Client | null>(null)
   const [isOpen, setIsOpen] = useState(false)
+  const [scanOpen, setScanOpen] = useState(false)
+  const [scanResult, setScanResult] = useState<BusinessCardScan | null>(null)
 
   const openNew = () => {
     setEditing(null)
+    setScanResult(null)
     setIsOpen(true)
   }
 
   const openEdit = (c: Client) => {
     setEditing(c)
+    setScanResult(null)
+    setIsOpen(true)
+  }
+
+  const handleScanned = (result: BusinessCardScan) => {
+    setEditing(null)
+    setScanResult(result)
     setIsOpen(true)
   }
 
@@ -128,10 +143,16 @@ export const SettingsClientsTab = () => {
         <p className="text-sm text-muted-foreground">
           登録取引先：{clients.length}件
         </p>
-        <Button onClick={openNew}>
-          <Plus className="h-4 w-4" />
-          新規追加
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setScanOpen(true)}>
+            <ScanLine className="h-4 w-4" />
+            名刺から登録
+          </Button>
+          <Button onClick={openNew}>
+            <Plus className="h-4 w-4" />
+            新規追加
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border">
@@ -191,10 +212,17 @@ export const SettingsClientsTab = () => {
         </Table>
       </div>
 
+      <BusinessCardScanDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onScanned={handleScanned}
+      />
+
       <ClientDialog
         open={isOpen}
         onOpenChange={setIsOpen}
         target={editing}
+        scan={scanResult}
       />
     </div>
   )
@@ -204,9 +232,10 @@ type DialogProps = {
   open: boolean
   onOpenChange: (v: boolean) => void
   target: Client | null
+  scan: BusinessCardScan | null
 }
 
-const ClientDialog = ({ open, onOpenChange, target }: DialogProps) => {
+const ClientDialog = ({ open, onOpenChange, target, scan }: DialogProps) => {
   const createMutation = useCreateClient()
   const updateMutation = useUpdateClient()
 
@@ -219,16 +248,17 @@ const ClientDialog = ({ open, onOpenChange, target }: DialogProps) => {
     formState: { errors },
   } = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
-    defaultValues: toFormValues(target),
+    defaultValues: toFormValues(target, scan),
   })
 
   const honorific = watch('honorific')
   const taxCategory = watch('defaultTaxCategory')
 
-  const handleOpenChange = (v: boolean) => {
-    if (v) reset(toFormValues(target))
-    onOpenChange(v)
-  }
+  // 開くたびに対象（編集対象 or 名刺読み取り結果）で初期化する。
+  // プログラム的に open されるケースがあるため onOpenChange では拾えない。
+  useEffect(() => {
+    if (open) reset(toFormValues(target, scan))
+  }, [open, target, scan, reset])
 
   const onSubmit = async (values: ClientFormValues) => {
     const input = toInput(values)
@@ -247,14 +277,16 @@ const ClientDialog = ({ open, onOpenChange, target }: DialogProps) => {
   const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
             {target ? '取引先を編集' : '取引先を追加'}
           </DialogTitle>
           <DialogDescription>
-            書類の宛先として使用されます
+            {scan
+              ? '名刺の読み取り結果です。内容を確認・修正してから保存してください'
+              : '書類の宛先として使用されます'}
           </DialogDescription>
         </DialogHeader>
 

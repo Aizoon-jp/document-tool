@@ -1,20 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { app } from 'electron'
-import Store from 'electron-store'
-
-type StoreSchema = {
-  dataDir?: string
-}
-
-let store: Store<StoreSchema> | null = null
-
-function getStore(): Store<StoreSchema> {
-  if (!store) {
-    store = new Store<StoreSchema>({ name: 'app-settings' })
-  }
-  return store
-}
+import { getStore } from './store'
 
 export function getDataDir(): string {
   const custom = getStore().get('dataDir')
@@ -64,4 +51,5 @@ export function migrateDataDir(toPath: string): void {
   copyItem('data.db-wal')
   copyItem('data.db-shm')
   copyItem('stamps')
+  copyItem('business_cards')
 }

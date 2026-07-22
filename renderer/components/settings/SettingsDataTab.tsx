@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FolderOpen, RefreshCw, HardDrive, AlertTriangle } from 'lucide-react'
+import { FolderOpen, RefreshCw, HardDrive, AlertTriangle, KeyRound } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -17,6 +17,11 @@ import {
   getDataDir,
   resetDataDir,
 } from '../../services/api/settings'
+import {
+  useApiKeyStatus,
+  useClearApiKey,
+  useSetApiKey,
+} from '../../hooks/useBusinessCard'
 import type { DataDirStatus } from '../../types'
 
 export const SettingsDataTab = () => {
@@ -74,7 +79,7 @@ export const SettingsDataTab = () => {
             データ保存先
           </CardTitle>
           <CardDescription>
-            データベースと印影画像の保存先フォルダです。OneDrive等のクラウド同期フォルダに変更することで複数PC間で共有できます。
+            データベース・印影画像・名刺画像の保存先フォルダです。OneDrive等のクラウド同期フォルダに変更することで複数PC間で共有できます。
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -187,6 +192,86 @@ export const SettingsDataTab = () => {
           </div>
         </CardContent>
       </Card>
+
+      <ApiKeyCard />
     </div>
+  )
+}
+
+const ApiKeyCard = () => {
+  const { data: status } = useApiKeyStatus()
+  const setMutation = useSetApiKey()
+  const clearMutation = useClearApiKey()
+  const [keyInput, setKeyInput] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSave = async () => {
+    try {
+      await setMutation.mutateAsync(keyInput)
+      setKeyInput('')
+      setError(null)
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
+  const handleClear = async () => {
+    if (!window.confirm('APIキーを削除すると名刺の読み取りが使えなくなります。削除しますか？')) {
+      return
+    }
+    await clearMutation.mutateAsync()
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <KeyRound className="h-4 w-4" />
+          名刺読み取り用 APIキー
+        </CardTitle>
+        <CardDescription>
+          取引先マスタの「名刺から登録」で使用します。キーはこのPC内にのみ保存され、名刺画像は読み取り時のみ Anthropic
+          に送信されます。
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {status?.configured ? (
+          <div className="space-y-2">
+            <div className="space-y-1.5">
+              <Label>登録済みのキー</Label>
+              <Input value={status.masked ?? ''} readOnly />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClear}
+              disabled={clearMutation.isPending}
+            >
+              削除
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="space-y-1.5">
+              <Label>APIキー</Label>
+              <Input
+                type="password"
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder="sk-ant-..."
+              />
+            </div>
+            {error && <p className="text-xs text-destructive">{error}</p>}
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!keyInput.trim() || setMutation.isPending}
+            >
+              {setMutation.isPending ? '保存中...' : '保存'}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

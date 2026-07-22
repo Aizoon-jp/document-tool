@@ -19,6 +19,7 @@ export const queryKeys = {
     detail: (id: string) => ['stamps', id] as const,
   },
   documentSettings: ['document-settings'] as const,
+  apiKey: ['api-key'] as const,
   documents: {
     all: ['documents'] as const,
     list: (sort?: DocumentSort) => ['documents', 'list', sort] as const,

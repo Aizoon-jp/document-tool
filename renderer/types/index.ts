@@ -252,13 +252,36 @@ export const API_PATHS = {
     list: 'document-settings:list',
     update: 'document-settings:update',
   },
+  businessCard: {
+    scan: 'business-card:scan',
+  },
   settings: {
     getDataDir: 'settings:get-data-dir',
     chooseDataDir: 'settings:choose-data-dir',
     changeDataDir: 'settings:change-data-dir',
     resetDataDir: 'settings:reset-data-dir',
+    getApiKey: 'settings:get-api-key',
+    setApiKey: 'settings:set-api-key',
+    clearApiKey: 'settings:clear-api-key',
   },
 } as const
+
+/** 名刺OCRの読み取り結果。取引先フォームの初期値として使う */
+export interface BusinessCardScan {
+  name: string
+  postalCode: string
+  address: string
+  tel: string
+  contactPerson: string
+  contactDepartment: string
+  notes: string
+  imagePath: string
+}
+
+export interface ApiKeyStatus {
+  configured: boolean
+  masked: string | null
+}
 
 export interface DataDirStatus {
   current: string

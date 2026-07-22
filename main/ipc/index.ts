@@ -5,6 +5,7 @@ import * as itemsApi from './items'
 import * as stampsApi from './stamps'
 import * as settingsApi from './documentSettings'
 import * as documentsApi from './documents'
+import * as businessCardApi from './businessCard'
 import * as numbersApi from './documentsNumber'
 import { registerSettingsHandlers } from './settings'
 import { generatePdf } from '../pdf/generator'
@@ -30,6 +31,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('clients:create', wrap(clientsApi.createClient))
   ipcMain.handle('clients:update', wrap(clientsApi.updateClient))
   ipcMain.handle('clients:delete', wrap(clientsApi.deleteClient))
+
+  ipcMain.handle('business-card:scan', wrap(businessCardApi.scanBusinessCard))
 
   ipcMain.handle('items:list', wrap(itemsApi.listItems))
   ipcMain.handle('items:get', wrap(itemsApi.getItem))

@@ -7,7 +7,9 @@ import {
   resetDataDir,
   setDataDir,
 } from '../config/dataDir'
+import { clearApiKey, getApiKey, setApiKey } from '../config/apiKey'
 import { closeDatabase } from '../db/client'
+import type { ApiKeyStatus } from '../../renderer/types'
 
 export interface DataDirStatus {
   current: string
@@ -15,7 +17,24 @@ export interface DataDirStatus {
   isCustom: boolean
 }
 
+function maskKey(key: string): string {
+  return `${key.slice(0, 10)}…${key.slice(-4)}`
+}
+
 export function registerSettingsHandlers(): void {
+  ipcMain.handle('settings:get-api-key', (): ApiKeyStatus => {
+    const key = getApiKey()
+    return { configured: key !== null, masked: key ? maskKey(key) : null }
+  })
+
+  ipcMain.handle('settings:set-api-key', async (_e, key: string): Promise<void> => {
+    setApiKey(key)
+  })
+
+  ipcMain.handle('settings:clear-api-key', async (): Promise<void> => {
+    clearApiKey()
+  })
+
   ipcMain.handle('settings:get-data-dir', (): DataDirStatus => {
     return {
       current: getDataDir(),
