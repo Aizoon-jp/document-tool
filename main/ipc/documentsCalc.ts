@@ -18,16 +18,12 @@ export interface CalculatedTotals {
   lines: CalculatedLine[]
 }
 
-function roundHalfUp(value: number): number {
-  return Math.floor(value + 0.5)
-}
-
 export function calculateLine(
   line: DocumentLineInput,
   lineNumber: number
 ): CalculatedLine {
-  const subtotalExclTax = roundHalfUp(line.quantity * line.unitPrice)
-  const taxAmount = roundHalfUp((subtotalExclTax * line.taxRate) / 100)
+  const subtotalExclTax = Math.floor(line.quantity * line.unitPrice)
+  const taxAmount = Math.floor((subtotalExclTax * line.taxRate) / 100)
   const subtotalInclTax = subtotalExclTax + taxAmount
   return {
     ...line,
