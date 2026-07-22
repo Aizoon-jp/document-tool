@@ -166,7 +166,12 @@
 - UIへの反映は `documentTypes` 配列ベースで自動化
 
 ## AI設計
-本プロジェクトにAI機能は含まれません（Step#6.5判定: 該当なし）。
+名刺OCR（取引先マスタへの入力補助）でのみ Anthropic Claude API を単発呼び出しする。
+- モデル: `claude-sonnet-5`（高解像度画像対応。Haiku 4.5 は旧字体を常用漢字へ誤変換するため不採用）
+- 呼び出しは**メインプロセスから**のみ（本番CSPが `connect-src 'self'` のためレンダラーからは不可）
+- APIキーは `electron-store`（app-settings）に保存。レンダラーへ実キーを渡さない（マスク済み文字列のみ）
+- 読み取り結果は**自動保存しない**。必ず確認ダイアログを経由する
+- 詳細: docs/requirements.md §7, §8
 
 ## CI/CD設定
 

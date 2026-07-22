@@ -1,4 +1,6 @@
 import type {
+  ApiKeyStatus,
+  BusinessCardScan,
   Client,
   ClientInput,
   Company,
@@ -45,6 +47,8 @@ export interface IpcApi {
   'clients:update': (id: string, input: ClientInput) => Promise<Client>
   'clients:delete': (id: string) => Promise<void>
 
+  'business-card:scan': (imageDataUrl: string) => Promise<BusinessCardScan>
+
   'items:list': () => Promise<Item[]>
   'items:get': (id: string) => Promise<Item | null>
   'items:create': (input: ItemInput) => Promise<Item>
@@ -89,6 +93,9 @@ export interface IpcApi {
     mode: 'move' | 'use-existing'
   ) => Promise<void>
   'settings:reset-data-dir': () => Promise<void>
+  'settings:get-api-key': () => Promise<ApiKeyStatus>
+  'settings:set-api-key': (key: string) => Promise<void>
+  'settings:clear-api-key': () => Promise<void>
 }
 
 export type IpcChannel = keyof IpcApi
