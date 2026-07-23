@@ -3,6 +3,14 @@ import type {
   DocumentLineInput,
   DocumentOptions,
 } from '../../renderer/types'
+import {
+  buildTaxBreakdown,
+  calcWithholdingTax,
+  lineSubtotalExclTax,
+  roundTaxAmount,
+  sumTaxAmount,
+  type TaxBreakdownEntry,
+} from './taxCalc'
 
 export interface CalculatedLine extends DocumentLineInput {
   lineNumber: number
@@ -15,25 +23,26 @@ export interface CalculatedTotals {
   taxAmount: number
   totalAmount: number
   withholdingTax: number
+  taxBreakdown: TaxBreakdownEntry[]
   lines: CalculatedLine[]
 }
 
-function roundHalfUp(value: number): number {
-  return Math.floor(value + 0.5)
-}
+/** 後方互換のためのエイリアス（旧名で参照している箇所向け）。 */
+export const calculateWithholdingTax = calcWithholdingTax
 
 export function calculateLine(
   line: DocumentLineInput,
   lineNumber: number
 ): CalculatedLine {
-  const subtotalExclTax = roundHalfUp(line.quantity * line.unitPrice)
-  const taxAmount = roundHalfUp((subtotalExclTax * line.taxRate) / 100)
-  const subtotalInclTax = subtotalExclTax + taxAmount
+  const subtotalExclTax = lineSubtotalExclTax(line.quantity, line.unitPrice)
+  // 行ごとの税込は参考値。消費税の確定額は税率ごとに1回だけ端数処理する
+  // （buildTaxBreakdown）ため、この値を合計に使ってはならない。
+  const referenceTax = roundTaxAmount((subtotalExclTax * line.taxRate) / 100)
   return {
     ...line,
     lineNumber,
     subtotalExclTax,
-    subtotalInclTax,
+    subtotalInclTax: subtotalExclTax + referenceTax,
   }
 }
 
@@ -41,35 +50,30 @@ export function calculateTotals(draft: DocumentDraft): CalculatedTotals {
   if (draft.detailMode === 'external') {
     const external = Math.max(0, Math.round(draft.externalAmount || 0))
     const withholdingTax = draft.options.withholdingTax
-      ? calculateWithholdingTax(external)
+      ? calcWithholdingTax(external)
       : 0
     return {
       subtotal: external,
       taxAmount: 0,
       totalAmount: external,
       withholdingTax,
+      taxBreakdown: [],
       lines: [],
     }
   }
 
   const lines = draft.lines.map((line, idx) => calculateLine(line, idx + 1))
   const subtotal = lines.reduce((s, l) => s + l.subtotalExclTax, 0)
-  const taxAmount = draft.options.includeTax
-    ? lines.reduce((s, l) => s + (l.subtotalInclTax - l.subtotalExclTax), 0)
-    : 0
+  const taxBreakdown = buildTaxBreakdown(
+    lines.map((l) => ({ taxRate: l.taxRate, amount: l.subtotalExclTax })),
+    draft.options.includeTax
+  )
+  const taxAmount = sumTaxAmount(taxBreakdown)
   const totalAmount = subtotal + taxAmount
   const withholdingTax = draft.options.withholdingTax
-    ? calculateWithholdingTax(subtotal)
+    ? calcWithholdingTax(subtotal)
     : 0
-  return { subtotal, taxAmount, totalAmount, withholdingTax, lines }
-}
-
-export function calculateWithholdingTax(taxableAmount: number): number {
-  if (taxableAmount <= 0) return 0
-  if (taxableAmount <= 1_000_000) {
-    return Math.floor(taxableAmount * 0.1021)
-  }
-  return Math.floor((taxableAmount - 1_000_000) * 0.2042 + 102_100)
+  return { subtotal, taxAmount, totalAmount, withholdingTax, taxBreakdown, lines }
 }
 
 export function emptyOptions(): DocumentOptions {

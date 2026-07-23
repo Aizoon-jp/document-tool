@@ -6,6 +6,7 @@ import type {
   DocumentType,
   Stamp,
 } from '../../renderer/types'
+import { buildTaxBreakdown } from '../ipc/taxCalc'
 
 const DOCUMENT_TITLE: Record<DocumentType, string> = {
   invoice: '請 求 書',
@@ -83,6 +84,26 @@ export function renderDocumentHtml(input: TemplateInput): string {
   const hasReduced = lines.some((l) => l.isReducedTaxRate)
   const netAmount = document.totalAmount - document.withholdingTax
 
+  // 適格請求書の記載事項：税率ごとに区分した対価の額・適用税率・消費税額。
+  // 消費税額は税率ごとに1回だけ端数処理する（buildTaxBreakdown）。
+  const includeTax = document.options.includeTax
+  const taxBreakdown =
+    document.detailMode === 'external'
+      ? []
+      : buildTaxBreakdown(
+          lines.map((l) => ({ taxRate: l.taxRate, amount: l.subtotalExclTax })),
+          includeTax
+        )
+  const taxRows = includeTax
+    ? taxBreakdown
+        .filter((e) => e.taxRate > 0)
+        .map(
+          (e) =>
+            `<tr><th>消費税${e.taxRate}%（対象 ${yen(e.taxableAmount)}）</th><td class="r">${yen(e.taxAmount)}</td></tr>`
+        )
+        .join('')
+    : ''
+
   return `<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -110,7 +131,8 @@ export function renderDocumentHtml(input: TemplateInput): string {
   td.r { text-align: right; }
   .reduced { color: #b45309; font-size: 8pt; margin-left: 2mm; }
   .summary { margin-top: 4mm; display: flex; justify-content: flex-end; }
-  .summary table { width: 80mm; }
+  .summary table { width: 90mm; }
+  .summary .total-row th, .summary .total-row td { background: #f3f4f6; font-weight: bold; }
   .footer { margin-top: 8mm; font-size: 9pt; }
   .section-title { font-weight: bold; margin-bottom: 2mm; border-left: 3px solid #555; padding-left: 3mm; }
   .remarks { margin-top: 6mm; white-space: pre-wrap; font-size: 9pt; border: 1px solid #999; padding: 3mm; }
@@ -167,12 +189,12 @@ export function renderDocumentHtml(input: TemplateInput): string {
   <div class="summary">
     <table>
       <tr><th>小計（税抜）</th><td class="r">${yen(document.subtotal)}</td></tr>
-      <tr><th>消費税</th><td class="r">${yen(document.taxAmount)}</td></tr>
-      <tr><th>合計</th><td class="r">${yen(document.totalAmount)}</td></tr>
+      ${taxRows}
+      <tr class="total-row"><th>合計</th><td class="r">${yen(document.totalAmount)}</td></tr>
       ${
         document.withholdingTax > 0
           ? `<tr><th>源泉徴収税</th><td class="r">-${yen(document.withholdingTax)}</td></tr>
-             <tr><th>差引支払額</th><td class="r"><b>${yen(netAmount)}</b></td></tr>`
+             <tr class="total-row"><th>差引支払額</th><td class="r"><b>${yen(netAmount)}</b></td></tr>`
           : ''
       }
     </table>

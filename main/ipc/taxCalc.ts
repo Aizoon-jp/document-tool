@@ -1,18 +1,9 @@
-import { TaxRate } from '../../types'
+import type { TaxRate } from '../../renderer/types'
 
-// 税計算のロジック。main 側（main/ipc/taxCalc.ts）にも同一の実装があり、
-// tests/unit/tax.test.ts で両者が一致することを検証している。
+// 税計算のロジック。renderer 側（renderer/components/documents/utils.ts）にも
+// 同一の実装があり、tests/unit/tax.test.ts で両者が一致することを検証している。
 // Nextron の main / renderer は webpack が分かれており共有モジュールを跨げないため、
 // 意図的に実装を二重化している。片方を変更したら必ずもう片方も揃えること。
-
-const currencyFormatter = new Intl.NumberFormat('ja-JP', {
-  style: 'currency',
-  currency: 'JPY',
-  maximumFractionDigits: 0,
-})
-
-export const formatCurrency = (amount: number): string =>
-  currencyFormatter.format(amount)
 
 /** 消費税額の端数処理。切り捨てを採用する（請求実務で最も一般的）。 */
 export function roundTaxAmount(value: number): number {
@@ -34,10 +25,9 @@ export interface TaxBreakdownEntry {
 
 /**
  * 税率ごとの区分（対価の合計）と消費税額を求める。
- *
  * インボイス制度では消費税額の端数処理は「一の適格請求書につき、税率ごとに1回」
- * と定められている（国税庁 タックスアンサー No.6371）。行ごとに端数処理して
- * 合算せず、税率ごとに対価を合計してから1回だけ端数処理する。
+ * （国税庁 タックスアンサー No.6371）。行ごとに端数処理して合算せず、税率ごとに
+ * 対価を合計してから1回だけ端数処理する。
  */
 export function buildTaxBreakdown(
   taxableLines: { taxRate: TaxRate; amount: number }[],
@@ -48,7 +38,7 @@ export function buildTaxBreakdown(
     totals.set(line.taxRate, (totals.get(line.taxRate) ?? 0) + line.amount)
   }
   return [...totals.entries()]
-    .sort((a, b) => b[0] - a[0]) // 10% → 8% → 0% の順
+    .sort((a, b) => b[0] - a[0])
     .map(([taxRate, taxableAmount]) => ({
       taxRate,
       taxableAmount,
@@ -71,28 +61,4 @@ export function calcWithholdingTax(taxableAmount: number): number {
     return Math.floor(taxableAmount * 0.1021)
   }
   return Math.floor((taxableAmount - 1_000_000) * 0.2042 + 102_100)
-}
-
-export interface LineCalc {
-  subtotalExclTax: number
-  /** 行ごとの参考税額。合計には buildTaxBreakdown を使うこと。 */
-  taxAmount: number
-  subtotalInclTax: number
-}
-
-export const calcLine = (
-  quantity: number,
-  unitPrice: number,
-  taxRate: TaxRate,
-  includeTax: boolean
-): LineCalc => {
-  const subtotalExclTax = lineSubtotalExclTax(quantity, unitPrice)
-  const taxAmount = includeTax
-    ? roundTaxAmount((subtotalExclTax * taxRate) / 100)
-    : 0
-  return {
-    subtotalExclTax,
-    taxAmount,
-    subtotalInclTax: subtotalExclTax + taxAmount,
-  }
 }

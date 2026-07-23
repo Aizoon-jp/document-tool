@@ -34,6 +34,7 @@ import {
   DocumentFormValues,
 } from '../../components/documents/schema'
 import {
+  buildTaxBreakdown,
   calcLine,
   calcWithholdingTax,
   formatCurrency,
@@ -194,20 +195,19 @@ export default function NewDocumentPage() {
           )
     const tax =
       values.detailMode === 'external'
-        ? values.options.includeTax
-          ? Math.floor(sub * 0.1)
-          : 0
-        : ls.reduce(
-            (a, l) =>
-              a +
-              calcLine(
+        ? 0
+        : buildTaxBreakdown(
+            ls.map((l) => ({
+              taxRate: l.taxRate,
+              amount: calcLine(
                 l.quantity,
                 l.unitPrice,
                 l.taxRate,
                 values.options.includeTax
-              ).taxAmount,
-            0
-          )
+              ).subtotalExclTax,
+            })),
+            values.options.includeTax
+          ).reduce((a, e) => a + e.taxAmount, 0)
     const wh = values.options.withholdingTax ? calcWithholdingTax(sub) : 0
     return { subtotal: sub, taxAmount: tax, withholdingTax: wh, total: sub + tax - wh }
   }, [values])
