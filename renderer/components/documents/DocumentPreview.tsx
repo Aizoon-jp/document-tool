@@ -6,7 +6,12 @@ import {
   Stamp,
 } from '../../types'
 import { DocumentFormValues } from './schema'
-import { calcLine, calcWithholdingTax, formatCurrency } from './utils'
+import {
+  buildTaxBreakdown,
+  calcLine,
+  calcWithholdingTax,
+  formatCurrency,
+} from './utils'
 
 interface Props {
   values: DocumentFormValues
@@ -64,20 +69,25 @@ const AMOUNT_LABEL: Record<DocumentType, string> = {
 export const DocumentPreview = ({ values, client, company, stamps }: Props) => {
   const { lines, detailMode, externalAmount, options } = values
 
+  const isExternal = detailMode === 'external'
   const lineTotals = lines.map((l) =>
     calcLine(l.quantity, l.unitPrice, l.taxRate, options.includeTax)
   )
 
-  const subtotal =
-    detailMode === 'external'
-      ? externalAmount
-      : lineTotals.reduce((a, b) => a + b.subtotalExclTax, 0)
-  const taxAmount =
-    detailMode === 'external'
-      ? options.includeTax
-        ? Math.floor(externalAmount * 0.1)
-        : 0
-      : lineTotals.reduce((a, b) => a + b.taxAmount, 0)
+  const subtotal = isExternal
+    ? externalAmount
+    : lineTotals.reduce((a, b) => a + b.subtotalExclTax, 0)
+  // 消費税は税率ごとに1回だけ端数処理する（インボイス制度）。行ごとの合算はしない。
+  const taxBreakdown = isExternal
+    ? []
+    : buildTaxBreakdown(
+        lines.map((l, i) => ({
+          taxRate: l.taxRate,
+          amount: lineTotals[i].subtotalExclTax,
+        })),
+        options.includeTax
+      )
+  const taxAmount = taxBreakdown.reduce((a, e) => a + e.taxAmount, 0)
   const withholdingTax = options.withholdingTax
     ? calcWithholdingTax(subtotal)
     : 0
@@ -230,20 +240,30 @@ export const DocumentPreview = ({ values, client, company, stamps }: Props) => {
           )}
         </div>
 
-        <div className="ml-auto w-56 space-y-1 border-t border-slate-400 pt-2 text-[11px]">
+        <div className="ml-auto w-60 space-y-1 border-t border-slate-400 pt-2 text-[11px]">
           <div className="flex justify-between">
-            <span className="text-slate-600">小計</span>
+            <span className="text-slate-600">
+              {isExternal ? '金額' : '小計（税抜）'}
+            </span>
             <span>{formatCurrency(subtotal)}</span>
           </div>
-          {options.includeTax && (
-            <div className="flex justify-between">
-              <span className="text-slate-600">消費税</span>
-              <span>{formatCurrency(taxAmount)}</span>
-            </div>
-          )}
+          {options.includeTax &&
+            taxBreakdown
+              .filter((e) => e.taxRate > 0)
+              .map((e) => (
+                <div
+                  key={e.taxRate}
+                  className="flex justify-between text-slate-600"
+                >
+                  <span>
+                    消費税{e.taxRate}%（対象 {formatCurrency(e.taxableAmount)}）
+                  </span>
+                  <span>{formatCurrency(e.taxAmount)}</span>
+                </div>
+              ))}
           {options.withholdingTax && (
             <div className="flex justify-between text-rose-700">
-              <span>源泉徴収税（10.21%）</span>
+              <span>源泉徴収税</span>
               <span>- {formatCurrency(withholdingTax)}</span>
             </div>
           )}

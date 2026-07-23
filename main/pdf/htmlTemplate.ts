@@ -6,6 +6,7 @@ import type {
   DocumentType,
   Stamp,
 } from '../../renderer/types'
+import { buildTaxBreakdown } from '../ipc/taxCalc'
 
 const DOCUMENT_TITLE: Record<DocumentType, string> = {
   invoice: '請 求 書',
@@ -123,6 +124,25 @@ export function renderDocumentHtml(input: TemplateInput): string {
         ? '領収金額'
         : 'ご請求金額'
   const includeTax = document.options.includeTax !== false
+
+  // 適格請求書の記載事項：税率ごとに区分した対価の額・適用税率・消費税額。
+  // 消費税額は税率ごとに1回だけ端数処理する（buildTaxBreakdown）。
+  const taxBreakdown =
+    document.detailMode === 'external'
+      ? []
+      : buildTaxBreakdown(
+          lines.map((l) => ({ taxRate: l.taxRate, amount: l.subtotalExclTax })),
+          includeTax
+        )
+  const taxRows = includeTax
+    ? taxBreakdown
+        .filter((e) => e.taxRate > 0)
+        .map(
+          (e) =>
+            `<div class="row"><span class="label">消費税${e.taxRate}%（対象 ${yen(e.taxableAmount)}）</span><span class="num">${yen(e.taxAmount)}</span></div>`
+        )
+        .join('')
+    : ''
 
   return `<!DOCTYPE html>
 <html lang="ja">
@@ -246,8 +266,8 @@ export function renderDocumentHtml(input: TemplateInput): string {
   ${hasReduced ? '<div class="reduced-note">※ 軽減税率対象</div>' : ''}
 
   <div class="summary">
-    <div class="row"><span class="label">小計</span><span class="num">${yen(document.subtotal)}</span></div>
-    ${includeTax ? `<div class="row"><span class="label">消費税</span><span class="num">${yen(document.taxAmount)}</span></div>` : ''}
+    <div class="row"><span class="label">小計（税抜）</span><span class="num">${yen(document.subtotal)}</span></div>
+    ${taxRows}
     ${
       document.withholdingTax > 0
         ? `<div class="row withholding"><span>源泉徴収税</span><span class="num">- ${yen(document.withholdingTax)}</span></div>`
