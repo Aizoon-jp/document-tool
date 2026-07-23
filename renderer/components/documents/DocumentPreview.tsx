@@ -2,7 +2,6 @@ import { format } from 'date-fns'
 import {
   Client,
   Company,
-  DOCUMENT_TYPE_LABEL,
   DocumentType,
   Stamp,
 } from '../../types'
@@ -43,6 +42,30 @@ const DOCUMENT_TITLE: Record<DocumentType, string> = {
   delivery_note: '納 品 書',
 }
 
+const NUMBER_LABEL: Record<DocumentType, string> = {
+  invoice: '請求書番号',
+  receipt: '領収書番号',
+  quote: '見積書番号',
+  payment_request: '振込依頼書番号',
+  delivery_note: '納品書番号',
+}
+
+const NOUN: Record<DocumentType, string> = {
+  invoice: '請求',
+  receipt: '領収',
+  quote: 'お見積り',
+  payment_request: 'お振込み',
+  delivery_note: '納品',
+}
+
+const AMOUNT_LABEL: Record<DocumentType, string> = {
+  invoice: 'ご請求金額',
+  receipt: '領収金額',
+  quote: 'お見積り金額',
+  payment_request: 'お振込み金額',
+  delivery_note: 'お支払い金額',
+}
+
 export const DocumentPreview = ({ values, client, company, stamps }: Props) => {
   const { lines, detailMode, externalAmount, options } = values
 
@@ -78,7 +101,7 @@ export const DocumentPreview = ({ values, client, company, stamps }: Props) => {
         </h2>
 
         <div className="mb-4 flex items-start justify-between gap-4">
-          <div className="flex-1">
+          <div className="flex-1 pt-2">
             <div className="border-b-2 border-slate-700 pb-1 text-base font-semibold">
               {client ? `${client.name} ${client.honorific}` : '取引先未選択'}
             </div>
@@ -88,55 +111,79 @@ export const DocumentPreview = ({ values, client, company, stamps }: Props) => {
               </div>
             )}
           </div>
-          <div className="relative w-44 text-right text-[10px]">
-            <div>発行日：{formatDate(values.issueDate)}</div>
-            <div className="font-mono">No. {values.documentNumber}</div>
-            <div className="mt-2 border-t border-slate-300 pt-1 text-[10px] text-slate-700">
+          <div className="relative w-52 text-[10px] text-slate-700">
+            <div className="text-right">
+              <div>{formatDate(values.issueDate)}</div>
+              <div className="font-mono">
+                {NUMBER_LABEL[values.documentType]}　{values.documentNumber}
+              </div>
+            </div>
+            <div className="relative mt-3">
               {company ? (
                 <>
-                  <div className="font-medium">{company.name}</div>
-                  {(company.postalCode || company.address) && (
-                    <div>
-                      {company.postalCode && `〒${company.postalCode} `}
-                      {company.address}
-                    </div>
-                  )}
-                  {company.tel && <div>TEL: {company.tel}</div>}
-                  {company.invoiceNumber && (
-                    <div>登録番号: {company.invoiceNumber}</div>
-                  )}
+                  <div className="text-[13px] font-bold text-slate-900">
+                    {company.name}
+                  </div>
+                  <div className="mt-1 space-y-0.5">
+                    {company.postalCode && <div>〒{company.postalCode}</div>}
+                    {company.address && (
+                      <div className="flex gap-1">
+                        <span className="min-w-[3em] text-slate-500">住所：</span>
+                        <span>{company.address}</span>
+                      </div>
+                    )}
+                    {company.tel && (
+                      <div className="flex gap-1">
+                        <span className="min-w-[3em] text-slate-500">電話：</span>
+                        <span>{company.tel}</span>
+                      </div>
+                    )}
+                    {company.email && (
+                      <div className="flex gap-1">
+                        <span className="min-w-[3em] text-slate-500">メール：</span>
+                        <span>{company.email}</span>
+                      </div>
+                    )}
+                    {company.invoiceNumber && (
+                      <div className="flex gap-1">
+                        <span className="min-w-[3em] text-slate-500">登録番号：</span>
+                        <span>{company.invoiceNumber}</span>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <div className="text-slate-400">
                   会社情報未登録（設定から登録してください）
                 </div>
               )}
+              {stamps.length > 0 && (
+                <div className="pointer-events-none absolute left-[7.5em] top-[-0.4em] flex gap-1">
+                  {stamps.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex h-10 w-10 items-center justify-center rounded-sm border-2 border-rose-500 text-center text-[8px] font-medium leading-tight text-rose-600 opacity-80"
+                    >
+                      {s.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {stamps.length > 0 && (
-              <div className="pointer-events-none absolute -right-1 bottom-0 flex gap-1">
-                {stamps.map((s) => (
-                  <div
-                    key={s.id}
-                    className="flex h-12 w-12 items-center justify-center rounded-sm border-2 border-rose-500 text-center text-[9px] font-medium leading-tight text-rose-600 opacity-80"
-                    style={{ transform: 'rotate(-6deg)' }}
-                  >
-                    {s.name}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
         <div className="mb-2 text-[10px] text-slate-600">
-          下記の通り{DOCUMENT_TYPE_LABEL[values.documentType]}申し上げます。
+          下記の通り、{NOUN[values.documentType]}申し上げます。
         </div>
 
-        <div className="mb-3 flex items-center justify-between rounded border border-slate-300 bg-slate-50 px-3 py-2">
-          <span className="text-sm font-medium">
-            ご{values.documentType === 'quote' ? '見積' : '請求'}金額
-          </span>
-          <span className="text-lg font-semibold">{formatCurrency(total)}</span>
+        <div className="mb-3 overflow-hidden rounded border border-slate-300">
+          <div className="bg-blue-600 py-1.5 text-center text-[11px] font-medium tracking-wider text-white">
+            {AMOUNT_LABEL[values.documentType]}（税込）
+          </div>
+          <div className="px-4 py-2 text-right text-xl font-bold text-slate-900">
+            {formatCurrency(total)}
+          </div>
         </div>
 
         <div className="mb-3 flex-1 overflow-hidden">

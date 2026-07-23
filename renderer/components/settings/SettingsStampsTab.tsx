@@ -168,7 +168,7 @@ const StampDialog = ({ open, onOpenChange }: DialogProps) => {
       name: '',
       defaultXMm: 140,
       defaultYMm: 55,
-      widthMm: 25,
+      widthMm: 20,
       opacity: 0.8,
       isDefault: false,
     },
@@ -182,7 +182,7 @@ const StampDialog = ({ open, onOpenChange }: DialogProps) => {
         name: '',
         defaultXMm: 140,
         defaultYMm: 55,
-        widthMm: 25,
+        widthMm: 20,
         opacity: 0.8,
         isDefault: false,
       })

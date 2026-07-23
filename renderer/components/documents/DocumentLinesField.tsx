@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Trash2, Plus } from 'lucide-react'
 import {
   Control,
@@ -66,9 +67,13 @@ export const DocumentLinesField = ({ control, items }: Props) => {
 
       {fields.map((f, idx) => {
         const line = watched?.[idx]
-        const lineTotal = line
+        const calc = line
           ? calcLine(line.quantity, line.unitPrice, line.taxRate, includeTax)
-              .subtotalExclTax
+          : null
+        const lineTotal = calc
+          ? includeTax
+            ? calc.subtotalInclTax
+            : calc.subtotalExclTax
           : 0
         return (
           <div
@@ -145,10 +150,20 @@ export const DocumentLinesField = ({ control, items }: Props) => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">金額</label>
-                <div className="flex h-9 items-center justify-end rounded-md border bg-muted/40 px-2 text-sm">
-                  {formatCurrency(lineTotal)}
-                </div>
+                <label className="text-xs text-muted-foreground">
+                  金額{includeTax ? '（税込）' : '（税抜）'}
+                </label>
+                <AmountInput
+                  amount={lineTotal}
+                  quantity={line?.quantity ?? 0}
+                  taxRate={line?.taxRate ?? 10}
+                  includeTax={includeTax}
+                  onCommit={(unitPrice) =>
+                    setValue(`lines.${idx}.unitPrice`, unitPrice, {
+                      shouldDirty: true,
+                    })
+                  }
+                />
               </div>
             </div>
           </div>
@@ -166,5 +181,53 @@ export const DocumentLinesField = ({ control, items }: Props) => {
         明細行を追加
       </Button>
     </div>
+  )
+}
+
+interface AmountInputProps {
+  amount: number
+  quantity: number
+  taxRate: number
+  includeTax: boolean
+  onCommit: (unitPrice: number) => void
+}
+
+const AmountInput = ({
+  amount,
+  quantity,
+  taxRate,
+  includeTax,
+  onCommit,
+}: AmountInputProps) => {
+  const [draft, setDraft] = useState<string | null>(null)
+  const value = draft ?? String(amount)
+
+  const commit = () => {
+    if (draft === null) return
+    const num = Number(draft)
+    if (!Number.isNaN(num) && quantity > 0) {
+      const exclTax = includeTax ? num / (1 + taxRate / 100) : num
+      onCommit(Math.round(exclTax / quantity))
+    }
+    setDraft(null)
+  }
+
+  return (
+    <Input
+      className="h-9 text-right"
+      type="number"
+      step="1"
+      value={value}
+      onFocus={() => setDraft(String(amount))}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          commit()
+          ;(e.target as HTMLInputElement).blur()
+        }
+      }}
+    />
   )
 }

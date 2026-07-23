@@ -218,7 +218,7 @@ export default function NewDocumentPage() {
       const doc = await createMutation.mutateAsync(toDraft(data))
       await pdfMutation.mutateAsync(doc.id)
       alert(`PDFを生成しました（書類番号: ${doc.documentNumber}）`)
-      router.push(`/documents/${doc.id}`)
+      router.push('/documents')
     } catch (e) {
       alert(`作成に失敗しました: ${(e as Error).message}`)
     } finally {
@@ -232,7 +232,7 @@ export default function NewDocumentPage() {
     try {
       const doc = await createMutation.mutateAsync(toDraft(data))
       alert(`下書き保存しました（書類番号: ${doc.documentNumber}）`)
-      router.push(`/documents/${doc.id}`)
+      router.push('/documents')
     } catch (e) {
       alert(`保存に失敗しました: ${(e as Error).message}`)
     } finally {
