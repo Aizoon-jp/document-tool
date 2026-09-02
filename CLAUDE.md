@@ -3,11 +3,6 @@
 ## 基本原則
 > 「シンプルさは究極の洗練である」
 
-- **最小性**: 不要なコードは一文字も残さない。必要最小限を超えない
-- **単一性**: 真実の源は常に一つ（型: types/index.ts、要件: requirements.md、進捗: SCOPE_PROGRESS.md）
-- **刹那性**: 役目を終えたコード・ドキュメントは即座に削除する
-- **実証性**: 推測しない。ログ・DB・APIレスポンスで事実を確認する
-- **潔癖性**: エラーは隠さない。フォールバックで問題を隠蔽しない
 
 ## プロジェクト設定
 
@@ -34,14 +29,8 @@
 - main/.env.local（Electron用、APIキー等、必要に応じて）
   - 設定モジュール: main/src/config/index.ts（process.env集約）
 
-### 共通ルール
-- ハードコード禁止: process.env / import.meta.env はconfig経由のみ
-- **絶対禁止**: .env, .env.test, .env.development, .env.example は作成しない
-
 ## 命名規則
 
-- コンポーネント: PascalCase.tsx / その他: camelCase.ts
-- 変数・関数: camelCase / 定数: UPPER_SNAKE_CASE / 型: PascalCase
 - DBテーブル: snake_case / カラム: snake_case
 
 ## 型定義
@@ -91,10 +80,6 @@
 └── CLAUDE.md
 ```
 
-## コード品質
-
-- 関数: 100行以下 / ファイル: 700行以下 / 複雑度: 10以下 / 行長: 120文字
-
 ## 開発ルール
 
 ### Drizzle / SQLite
@@ -127,22 +112,11 @@
 ### エラー対応
 - DB接続エラー → マイグレーション再実行、それでもダメなら初期化確認
 - PDF生成エラー → BrowserWindow 状態確認、フォント読み込み確認
-- 同じエラー3回 → Web検索で最新情報を収集
 
 ### デプロイ
-- デプロイはユーザーの明示的な承認を得てから実行する
 - Windows: `npm run dist:win`（.exe 生成）
 - Mac: `npm run dist:mac`（.dmg 生成、要Apple Developer署名）
 - 詳細: docs/DEPLOYMENT.md（後日作成）
-
-### ドキュメント管理
-許可されたドキュメントのみ作成可能:
-- docs/SCOPE_PROGRESS.md（実装計画・進捗）
-- docs/requirements.md（要件定義）
-- docs/DEPLOYMENT.md（デプロイ情報）
-- docs/e2e-specs/（E2Eテスト仕様書）
-
-上記以外のドキュメント作成はユーザー許諾が必要。実装済みの記載は積極的に削除する。
 
 ## Playwright
 
@@ -182,12 +156,6 @@
 | Lint | ルート | `npm run lint` |
 | Build | ルート | `npm run build` |
 
-### ブランチ戦略
-- `main`: 本番環境
-- `develop`: 開発統合ブランチ
-- `feature/*`: 機能開発ブランチ
-
 ### リポジトリ
 - URL: https://github.com/Aizoon-jp/document-tool
 - 公開設定: Private
-
