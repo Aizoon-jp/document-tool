@@ -21,12 +21,8 @@ import { Button } from '../../components/ui/button'
 import { Separator } from '../../components/ui/separator'
 import { DocumentPreview } from '../../components/documents/DocumentPreview'
 import { formatCurrency } from '../../components/documents/utils'
-import { DocumentFormValues } from '../../components/documents/schema'
-import {
-  DOCUMENT_TYPE_LABEL,
-  Document,
-  DocumentLine,
-} from '../../types'
+import { toFormValues } from '../../components/documents/mapping'
+import { DOCUMENT_TYPE_LABEL } from '../../types'
 import { useClients } from '../../hooks/useClients'
 import { useCompany } from '../../hooks/useCompany'
 import { useStamps } from '../../hooks/useStamps'
@@ -53,43 +49,6 @@ const formatCreatedAt = (iso: string): string => {
     return iso
   }
 }
-
-const toFormValues = (
-  doc: Document,
-  lines: DocumentLine[]
-): DocumentFormValues => ({
-  documentType: doc.documentType,
-  clientId: doc.clientId,
-  issueDate: doc.issueDate,
-  documentNumber: doc.documentNumber,
-  detailMode: doc.detailMode,
-  lines:
-    lines.length > 0
-      ? lines.map((l) => ({
-          itemId: null,
-          content: l.content,
-          quantity: l.quantity,
-          unit: l.unit,
-          unitPrice: l.unitPrice,
-          taxRate: l.taxRate,
-          isReducedTaxRate: l.isReducedTaxRate,
-        }))
-      : [
-          {
-            itemId: null,
-            content: `${DOCUMENT_TYPE_LABEL[doc.documentType]}業務一式`,
-            quantity: 1,
-            unit: '式',
-            unitPrice: doc.subtotal,
-            taxRate: 10,
-            isReducedTaxRate: false,
-          },
-        ],
-  externalAmount: doc.detailMode === 'external' ? doc.subtotal : 0,
-  options: doc.options,
-  stampIds: doc.stampId ? [doc.stampId] : [],
-  remarks: doc.remarks ?? '',
-})
 
 /**
  * Extract the document UUID from the current URL pathname.

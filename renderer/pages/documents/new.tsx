@@ -41,14 +41,18 @@ import {
 } from '../../components/documents/utils'
 import { DocumentPreview } from '../../components/documents/DocumentPreview'
 import { DocumentLinesField } from '../../components/documents/DocumentLinesField'
+import { toFormValues } from '../../components/documents/mapping'
 import { useClients } from '../../hooks/useClients'
 import { useCompany } from '../../hooks/useCompany'
 import { useItems } from '../../hooks/useItems'
 import { useStamps } from '../../hooks/useStamps'
 import {
   useCreateDocument,
+  useDocument,
+  useDocumentLines,
   useGeneratePdf,
   useNextDocumentNumber,
+  useUpdateDocument,
 } from '../../hooks/useDocuments'
 import { getNextDocumentNumber } from '../../services/api/documents'
 
@@ -64,6 +68,9 @@ const isDocumentType = (v: unknown): v is DocumentType =>
   typeof v === 'string' && (DOCUMENT_TYPES as string[]).includes(v)
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10)
+
+const asStringParam = (v: unknown): string | undefined =>
+  typeof v === 'string' && v.length > 0 ? v : undefined
 
 const buildDefaults = (type: DocumentType): DocumentFormValues => ({
   documentType: type,
@@ -120,13 +127,34 @@ export default function NewDocumentPage() {
   const rawType = router.query.type
   const initialType: DocumentType = isDocumentType(rawType) ? rawType : 'invoice'
 
+  // 複製元／再発行元の書類ID。base があれば「編集（再発行＝同一レコード更新）」、
+  // from のみなら「複製（新規レコードとして作成）」。
+  const duplicateFromId = asStringParam(router.query.from)
+  const editBaseId = asStringParam(router.query.base)
+  const sourceId = editBaseId ?? duplicateFromId
+  const isEditMode = Boolean(editBaseId)
+
   const { data: clients = [] } = useClients()
   const { data: items = [] } = useItems()
   const { data: stamps = [] } = useStamps()
   const { data: company = null } = useCompany()
   const createMutation = useCreateDocument()
+  const updateMutation = useUpdateDocument()
   const pdfMutation = useGeneratePdf()
   const [isProcessing, setIsProcessing] = useState(false)
+
+  const {
+    data: sourceDoc,
+    isLoading: isSourceDocLoading,
+    isSuccess: isSourceDocLoaded,
+  } = useDocument(sourceId)
+  const { data: sourceLines, isSuccess: isSourceLinesLoaded } =
+    useDocumentLines(sourceId)
+  const [isSourceApplied, setIsSourceApplied] = useState(false)
+
+  const hasSource = Boolean(sourceId)
+  const isSourceReady = !hasSource || (isSourceDocLoaded && isSourceLinesLoaded)
+  const sourceNotFound = hasSource && isSourceDocLoaded && !sourceDoc
 
   const form = useForm<DocumentFormValues>({
     resolver: zodResolver(documentFormSchema),
@@ -134,6 +162,17 @@ export default function NewDocumentPage() {
     mode: 'onChange',
   })
   const { control, register, setValue, handleSubmit, watch } = form
+
+  // 複製・再発行元の読み込みが完了したら、その内容をフォームへ反映する。
+  // 再発行（編集）は書類番号・発行日をそのまま引き継ぎ、複製は新規採番・当日日付にする。
+  useEffect(() => {
+    if (!sourceDoc || isSourceApplied || !isSourceLinesLoaded) return
+    const base = toFormValues(sourceDoc, sourceLines ?? [])
+    form.reset(
+      isEditMode ? base : { ...base, issueDate: todayIso(), documentNumber: '' }
+    )
+    setIsSourceApplied(true)
+  }, [sourceDoc, sourceLines, isSourceLinesLoaded, isEditMode, isSourceApplied, form])
 
   const currentType = watch('documentType')
   const currentClientId = watch('clientId')
@@ -143,10 +182,12 @@ export default function NewDocumentPage() {
   )
 
   useEffect(() => {
+    // 再発行（編集）は既存の書類番号を維持するため、自動採番で上書きしない。
+    if (isEditMode) return
     if (nextNumber) {
       setValue('documentNumber', nextNumber.formatted)
     }
-  }, [nextNumber, setValue])
+  }, [nextNumber, setValue, isEditMode])
 
   useEffect(() => {
     const defaults = stamps.filter((s) => s.isDefault).map((s) => s.id)
@@ -212,15 +253,26 @@ export default function NewDocumentPage() {
     return { subtotal: sub, taxAmount: tax, withholdingTax: wh, total: sub + tax - wh }
   }, [values])
 
+  // 編集（再発行）なら同一レコードを更新し、それ以外は新規作成する。
+  // 保存後はいずれも作成・更新した書類の詳細ページへ遷移する。
+  const saveDocument = (data: DocumentFormValues) =>
+    isEditMode && editBaseId
+      ? updateMutation.mutateAsync({ id: editBaseId, draft: toDraft(data) })
+      : createMutation.mutateAsync(toDraft(data))
+
   const onSubmit = async (data: DocumentFormValues) => {
     setIsProcessing(true)
     try {
-      const doc = await createMutation.mutateAsync(toDraft(data))
+      const doc = await saveDocument(data)
       await pdfMutation.mutateAsync(doc.id)
-      alert(`PDFを生成しました（書類番号: ${doc.documentNumber}）`)
-      router.push('/documents')
+      alert(
+        isEditMode
+          ? `更新してPDFを再生成しました（書類番号: ${doc.documentNumber}）`
+          : `PDFを生成しました（書類番号: ${doc.documentNumber}）`
+      )
+      router.push(`/documents/${doc.id}`)
     } catch (e) {
-      alert(`作成に失敗しました: ${(e as Error).message}`)
+      alert(`${isEditMode ? '更新' : '作成'}に失敗しました: ${(e as Error).message}`)
     } finally {
       setIsProcessing(false)
     }
@@ -230,9 +282,13 @@ export default function NewDocumentPage() {
     const data = form.getValues()
     setIsProcessing(true)
     try {
-      const doc = await createMutation.mutateAsync(toDraft(data))
-      alert(`下書き保存しました（書類番号: ${doc.documentNumber}）`)
-      router.push('/documents')
+      const doc = await saveDocument(data)
+      alert(
+        isEditMode
+          ? `更新しました（書類番号: ${doc.documentNumber}）`
+          : `下書き保存しました（書類番号: ${doc.documentNumber}）`
+      )
+      router.push(`/documents/${doc.id}`)
     } catch (e) {
       alert(`保存に失敗しました: ${(e as Error).message}`)
     } finally {
@@ -271,12 +327,56 @@ export default function NewDocumentPage() {
     )
   }
 
+  if (hasSource && (isSourceDocLoading || !isSourceReady)) {
+    return (
+      <>
+        <Head>
+          <title>読み込み中 — 事務ツール</title>
+        </Head>
+        <div className="py-16 text-center text-sm text-muted-foreground">
+          読み込み中...
+        </div>
+      </>
+    )
+  }
+
+  if (sourceNotFound) {
+    return (
+      <>
+        <Head>
+          <title>書類が見つかりません — 事務ツール</title>
+        </Head>
+        <div className="mx-auto max-w-xl py-16">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">書類が見つかりません</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {isEditMode ? '編集（再発行）' : '複製'}
+                元の書類「{sourceId}」は存在しないか、削除された可能性があります。
+              </p>
+              <Button variant="outline" onClick={() => router.push('/documents')}>
+                <X className="mr-1 h-4 w-4" />
+                履歴に戻る
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    )
+  }
+
+  const pageHeading = isEditMode
+    ? `書類編集（再発行）：${DOCUMENT_TYPE_LABEL[values.documentType]}`
+    : duplicateFromId
+      ? `書類複製：${DOCUMENT_TYPE_LABEL[values.documentType]}`
+      : `書類作成：${DOCUMENT_TYPE_LABEL[values.documentType]}`
+
   return (
     <>
       <Head>
-        <title>
-          書類作成：{DOCUMENT_TYPE_LABEL[values.documentType]} — 事務ツール
-        </title>
+        <title>{pageHeading} — 事務ツール</title>
       </Head>
 
       <FormProvider {...form}>
@@ -284,7 +384,7 @@ export default function NewDocumentPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">
-                書類作成：{DOCUMENT_TYPE_LABEL[values.documentType]}
+                {pageHeading}
               </h1>
               <p className="text-sm text-muted-foreground">
                 取引先・明細・オプションを入力すると、右側にプレビューが自動で反映されます。
@@ -307,11 +407,15 @@ export default function NewDocumentPage() {
                 disabled={isProcessing}
               >
                 <Save className="mr-1 h-4 w-4" />
-                下書き保存
+                {isEditMode ? '更新のみ保存' : '下書き保存'}
               </Button>
               <Button type="submit" disabled={isProcessing}>
                 <FileDown className="mr-1 h-4 w-4" />
-                {isProcessing ? '処理中...' : 'PDF生成'}
+                {isProcessing
+                  ? '処理中...'
+                  : isEditMode
+                    ? '更新してPDF生成'
+                    : 'PDF生成'}
               </Button>
             </div>
           </div>
