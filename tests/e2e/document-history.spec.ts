@@ -714,7 +714,7 @@ test('E2E-DOC-HIST-009: 操作メニュー：削除（OK／キャンセル分岐
  *       - 件数表示が `15件中 0件を表示`
  *       - `リセット` ボタンは通常どおり動作し、15 件表示に復帰する
  */
-test.only('E2E-DOC-HIST-010: 空状態（該当0件）', async () => {
+test('E2E-DOC-HIST-010: 空状態（該当0件）', async () => {
   if (!ctx || !seeded) throw new Error('Electron context not initialized')
   const page = ctx.page
 

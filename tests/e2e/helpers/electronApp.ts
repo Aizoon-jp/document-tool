@@ -12,23 +12,13 @@ export interface LaunchResult {
 /**
  * Launch the Electron app (production build in `app/`).
  *
- * When launched with `electron app/background.js` from the project root,
- * `app.getAppPath()` returns `<projectRoot>/app`. The code uses:
- *   - `electron-serve({ directory: 'app' })` → resolves to `<projectRoot>/app/app`
- *   - migrations at `path.join(getAppPath(), '..', 'main/db/migrations')`
- *     → resolves to `<projectRoot>/main/db/migrations`
- *
- * The migrations path is correct, but electron-serve looks for `app/app`.
- * We satisfy it with a self-referential symlink `app/app → .` so both paths
- * resolve to valid directories.
+ * Electron must be pointed at the project root (`.`), not at
+ * `app/background.js` directly: `main/db/client.ts` resolves migrations as
+ * `path.join(app.getAppPath(), 'main', 'db', 'migrations')`, and
+ * electron-serve is configured with `directory: 'app'`. Both only resolve
+ * when `getAppPath()` is the project root. package.json's `main` field
+ * points Electron at `app/background.js` from there.
  */
-function ensureServeSymlink(projectRoot: string): void {
-  const symlink = path.join(projectRoot, 'app', 'app')
-  if (!fs.existsSync(symlink)) {
-    fs.symlinkSync('.', symlink, 'dir')
-  }
-}
-
 export async function launchElectron(): Promise<LaunchResult> {
   const projectRoot = path.resolve(__dirname, '..', '..', '..')
   const mainEntry = path.join(projectRoot, 'app', 'background.js')
@@ -39,13 +29,11 @@ export async function launchElectron(): Promise<LaunchResult> {
     )
   }
 
-  ensureServeSymlink(projectRoot)
-
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jimu-e2e-'))
 
   const app = await electron.launch({
     args: [
-      mainEntry,
+      projectRoot,
       `--user-data-dir=${userDataDir}`,
       '--no-sandbox',
       '--disable-gpu',
@@ -56,6 +44,8 @@ export async function launchElectron(): Promise<LaunchResult> {
       ...process.env,
       NODE_ENV: 'production',
       ELECTRON_DISABLE_SECURITY_WARNINGS: '1',
+      // ウィンドウを表示せずに実行する（main/background.ts で参照）。
+      JIMU_HIDE_WINDOW: '1',
     },
     timeout: 60000,
   })

@@ -987,7 +987,7 @@ test('E2E-DOC-NEW-008: 印影の複数選択トグル', async () => {
  *   (d) ダッシュボード `/` → `/documents/new?type=invoice` に遷移した後、
  *       `キャンセル` ボタンで `router.back()` が動き、`/` に戻る
  */
-test.only('E2E-DOC-NEW-009: アクションボタンの挙動（PDF/下書き/キャンセル）', async () => {
+test('E2E-DOC-NEW-009: アクションボタンの挙動（PDF/下書き/キャンセル）', async () => {
   if (!ctx) throw new Error('Electron context not initialized')
   const page = ctx.page
 
