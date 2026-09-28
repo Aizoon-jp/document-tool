@@ -554,3 +554,78 @@ export async function seedDashboardTestData(
     return { client, documents }
   })
 }
+
+/**
+ * P-004/new 編集（再発行）・複製 E2E 用の単一書類シード。
+ *
+ * `document-edit.spec.ts` が前提とする最小データを 1 件だけ投入する:
+ *   - 取引先「編集テスト株式会社」1件
+ *   - 書類（invoice）1件、明細1行（`編集前品目` / 単価 100,000 / 数量 2 / 単位 個）
+ *     - documentNumber: `2026-01-999`（採番シーケンスと衝突しない固定値）
+ *     - issueDate: `2026-01-15`（複製モードで「発行日が今日に変わる」ことを
+ *       区別して検証できるよう、意図的に今日ではない過去日にする）
+ *
+ * 戻り値の `document` は `documents:create` のレスポンス（id 確定後の Document）。
+ */
+export async function seedEditableDocument(
+  page: Page
+): Promise<{ client: Client; document: Document }> {
+  await page.waitForFunction(
+    () => typeof (window as unknown as { ipc?: unknown }).ipc !== 'undefined',
+    undefined,
+    { timeout: 30000 }
+  )
+
+  return page.evaluate(async () => {
+    type IpcBridge = {
+      invoke<T>(channel: string, ...args: unknown[]): Promise<T>
+    }
+    const ipc = (window as unknown as { ipc: IpcBridge }).ipc
+
+    const clientInput: ClientInput = {
+      name: '編集テスト株式会社',
+      honorific: '御中',
+      postalCode: null,
+      address: null,
+      tel: null,
+      contactPerson: null,
+      contactDepartment: null,
+      paymentTerms: null,
+      defaultTaxCategory: 'taxable_10',
+      notes: null,
+    }
+    const client = await ipc.invoke<Client>('clients:create', clientInput)
+
+    const draft: DocumentDraft = {
+      documentType: 'invoice',
+      documentNumber: '2026-01-999',
+      issueDate: '2026-01-15',
+      clientId: client.id,
+      detailMode: 'direct',
+      lines: [
+        {
+          itemId: null,
+          content: '編集前品目',
+          quantity: 2,
+          unit: '個',
+          unitPrice: 100000,
+          taxRate: 10,
+          isReducedTaxRate: false,
+        },
+      ],
+      externalAmount: 0,
+      options: {
+        includeTax: true,
+        reducedTaxRate: false,
+        withholdingTax: false,
+        showRemarks: false,
+        showBankInfo: true,
+      },
+      stampIds: [],
+      remarks: '',
+    }
+    const document = await ipc.invoke<Document>('documents:create', draft)
+
+    return { client, document }
+  })
+}

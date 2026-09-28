@@ -119,13 +119,20 @@ const registerAppProtocol = (): void => {
     })
   })
 
+  // E2E など自動テスト実行時は、ウィンドウを表示せずに動かす
+  // （テスト中のウィンドウが利用者の操作を奪わないようにするため）。
+  const isHiddenRun = process.env.JIMU_HIDE_WINDOW === '1'
+
   const mainWindow = createWindow('main', {
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 700,
+    show: !isHiddenRun,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      // 非表示ウィンドウでも描画を止めない（テストの待機が固まるのを防ぐ）。
+      backgroundThrottling: false,
     },
   })
 
