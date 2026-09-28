@@ -191,4 +191,4 @@
 
 ### リポジトリ
 - URL: https://github.com/Aizoon-jp/document-tool
-- 公開設定: Private
+- 公開設定: **Public（意図的・2026-09-28 決定）**。LP のダウンロードボタンが GitHub Release のアセットを直リンクしているため、Private にすると LP から落とせなくなる。非公開化するなら先にインストーラーを別ホストへ移す。コードは全公開なので push 前に秘密情報の混入を確認する
