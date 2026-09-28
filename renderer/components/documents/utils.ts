@@ -14,9 +14,14 @@ const currencyFormatter = new Intl.NumberFormat('ja-JP', {
 export const formatCurrency = (amount: number): string =>
   currencyFormatter.format(amount)
 
-/** 消費税額の端数処理。切り捨てを採用する（請求実務で最も一般的）。 */
+/**
+ * 消費税額の端数処理。四捨五入を採用する。
+ * インボイス制度では端数処理の方法（切上げ・切捨て・四捨五入）を事業者が選択できる
+ * （国税庁 タックスアンサー No.6371）。税込でキリのよい請求額を組めるよう四捨五入とする。
+ * 切り捨てでは税込12,000円ちょうどになる税抜額が存在しない（10,909→11,999 / 10,910→12,001）。
+ */
 export function roundTaxAmount(value: number): number {
-  return Math.floor(value)
+  return Math.round(value)
 }
 
 /** 明細1行の税抜金額（対価）。数量×単価。端数は切り捨て。 */

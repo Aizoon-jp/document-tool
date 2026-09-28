@@ -350,7 +350,7 @@ test('E2E-DASH-005: 今月サマリ表示', async () => {
   })
 })
 
-test.only('E2E-DASH-006: 書類履歴をすべて見る', async () => {
+test('E2E-DASH-006: 書類履歴をすべて見る', async () => {
   if (!ctx) throw new Error('Electron context not initialized')
   const page = ctx.page
 

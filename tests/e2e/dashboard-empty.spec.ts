@@ -24,7 +24,7 @@ test.afterAll(async () => {
   if (ctx) await closeElectron(ctx)
 })
 
-test.only('E2E-DASH-007: 空状態（最近書類ゼロ件）', async () => {
+test('E2E-DASH-007: 空状態（最近書類ゼロ件）', async () => {
   if (!ctx) throw new Error('Electron context not initialized')
   const page = ctx.page
 
