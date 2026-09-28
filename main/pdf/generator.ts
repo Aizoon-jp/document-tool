@@ -7,9 +7,13 @@ import { getDocument, getDocumentLines } from '../ipc/documents'
 import { getCompany } from '../ipc/company'
 import { getClient } from '../ipc/clients'
 import { renderDocumentHtml } from './htmlTemplate'
+import { config } from '../config'
 
 function pdfOutputDir(): string {
-  const dir = path.join(app.getPath('documents'), '事務ツール')
+  // 開発モードは userData と同様に本番と分ける（background.ts）
+  const dir =
+    config.pdfOutputDir ??
+    path.join(app.getPath('documents'), config.isProd ? '事務ツール' : '事務ツール (development)')
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
   }

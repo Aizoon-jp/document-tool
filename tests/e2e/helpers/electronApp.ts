@@ -46,6 +46,8 @@ export async function launchElectron(): Promise<LaunchResult> {
       ELECTRON_DISABLE_SECURITY_WARNINGS: '1',
       // ウィンドウを表示せずに実行する（main/background.ts で参照）。
       JIMU_HIDE_WINDOW: '1',
+      // PDF は一時フォルダへ。本番の ~/Documents/事務ツール を上書きしていた
+      JIMU_PDF_OUTPUT_DIR: path.join(userDataDir, 'pdf'),
     },
     timeout: 60000,
   })
