@@ -180,6 +180,13 @@
 - 読み取り結果は**自動保存しない**。必ず確認ダイアログを経由する
 - 詳細: docs/requirements.md §7, §8
 
+## MCP モード（2026-10-20 追加）
+- `<実行ファイル> --mcp` で GUI なしの stdio MCP サーバーになる（`main/mcp/`）。登録コマンドは 設定 > データ の「AI連携」
+- **stdout は JSON-RPC 専用**。MCP モードでは console.* を stderr へ流している。main 側で stdout に直接書く処理を足さない
+- PDF 生成の非表示ウィンドウを閉じるたびに `window-all-closed` が飛ぶので、MCP モードでは quit しない分岐がある。消さない
+- **削除系ツールは意図的に公開していない**（元に戻せないため）。足すならユーザー判断
+- Windows で stdio が通るかは CI の `mcp` ジョブ（windows-latest）でしか確かめられない
+
 ## CI/CD設定
 
 ### GitHub Actions（PR時に自動実行）
