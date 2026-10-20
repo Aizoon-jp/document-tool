@@ -6,8 +6,16 @@ import { closeDatabase, initDatabase } from './db/client'
 import { registerIpcHandlers } from './ipc'
 import { seedDefaultDocumentSettings } from './ipc/documentSettings'
 import { buildAppMenu } from './menu'
+import { config } from './config'
+import { redirectConsoleToStderr, startMcpServer } from './mcp/run'
 
-const isProd = process.env.NODE_ENV === 'production'
+const { isProd, isMcp } = config
+
+// --mcp: GUI なしの stdio MCP サーバー。stdout は JSON-RPC 専用なので最初に塞ぐ。
+if (isMcp) {
+  redirectConsoleToStderr()
+  app.dock?.hide()
+}
 
 // Register the custom `app://` scheme as privileged BEFORE app.ready (required).
 // Mirrors electron-serve defaults so existing behavior is unchanged.
@@ -96,6 +104,19 @@ const registerAppProtocol = (): void => {
 ;(async () => {
   await app.whenReady()
 
+  if (isMcp) {
+    // Menu / IPC / CSP / ウィンドウ / app:// は不要（PDF生成は data: URL の非表示ウィンドウ）
+    try {
+      initDatabase()
+      await seedDefaultDocumentSettings()
+      await startMcpServer()
+    } catch (e) {
+      console.error('MCP サーバーの起動に失敗しました:', e)
+      app.exit(1)
+    }
+    return
+  }
+
   if (isProd) {
     registerAppProtocol()
   }
@@ -146,7 +167,8 @@ const registerAppProtocol = (): void => {
 })()
 
 app.on('window-all-closed', () => {
-  app.quit()
+  // MCP モードの PDF 生成は非表示ウィンドウを作っては閉じる。そのたびに終了させない
+  if (!isMcp) app.quit()
 })
 
 app.on('before-quit', () => {

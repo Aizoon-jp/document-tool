@@ -209,6 +209,9 @@ export interface DocumentSort {
 }
 
 export const API_PATHS = {
+  app: {
+    mcpSetup: 'app:mcp-setup',
+  },
   documents: {
     list: 'documents:list',
     listRecent: 'documents:list-recent',
@@ -287,4 +290,12 @@ export interface DataDirStatus {
   current: string
   default: string
   isCustom: boolean
+}
+
+/** AI連携（--mcp モード）の登録に使うコマンド。設定画面に表示する */
+export interface McpSetupInfo {
+  executablePath: string
+  claudeCommand: string
+  codexCommand: string
+  codexToml: string
 }

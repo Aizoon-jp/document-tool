@@ -27,3 +27,38 @@ jobs:
 
       - name: Build (renderer)
         run: npm run build --if-present
+
+  # --mcp（stdio の MCP サーバー）は Windows の GUI 実行ファイルで stdio が通るかが要。
+  # 開発用 Electron と、インストーラーと同じ実行ファイル（パスに日本語を含む）の両方で確かめる。
+  mcp:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            packaged_exe: dist/win-unpacked/事務ツール.exe
+          - os: macos-latest
+            packaged_exe: dist/mac-arm64/事務ツール.app/Contents/MacOS/事務ツール
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: MCP E2E (development Electron)
+        run: npx playwright test tests/e2e/mcp.spec.ts
+
+      - name: MCP E2E (packaged executable)
+        run: npx playwright test tests/e2e/mcp.spec.ts
+        env:
+          JIMU_E2E_MCP_EXE: ${{ github.workspace }}/${{ matrix.packaged_exe }}

@@ -15,6 +15,7 @@ import type {
   DocumentType,
   Item,
   ItemInput,
+  McpSetupInfo,
   MonthlySummary,
   NextDocumentNumber,
   Stamp,
@@ -37,6 +38,7 @@ export interface DataDirStatus {
 
 export interface IpcApi {
   'app:getVersion': () => Promise<string>
+  'app:mcp-setup': () => Promise<McpSetupInfo>
 
   'company:get': () => Promise<Company | null>
   'company:update': (input: CompanyInput) => Promise<Company>
