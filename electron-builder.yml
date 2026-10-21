@@ -14,6 +14,8 @@ extraResources:
     to: migrations
     filter:
       - "**/*"
+  - from: resources/mcp-bridge.js
+    to: mcp-bridge.js
 asarUnpack:
   - "**/node_modules/better-sqlite3/**/*"
   - "**/node_modules/bindings/**/*"

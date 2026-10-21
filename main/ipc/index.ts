@@ -9,6 +9,7 @@ import * as businessCardApi from './businessCard'
 import * as numbersApi from './documentsNumber'
 import { registerSettingsHandlers } from './settings'
 import { generatePdf } from '../pdf/generator'
+import { getMcpSetupInfo } from '../mcp/setupInfo'
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => Promise<unknown>
 
@@ -22,6 +23,7 @@ function wrap<T extends (...args: never[]) => Promise<unknown>>(
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('app:getVersion', () => app.getVersion())
+  ipcMain.handle('app:mcp-setup', () => getMcpSetupInfo())
 
   ipcMain.handle('company:get', wrap(companyApi.getCompany))
   ipcMain.handle('company:update', wrap(companyApi.updateCompany))

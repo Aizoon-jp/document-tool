@@ -276,7 +276,8 @@ test('E2E-DOC-EDIT-004: 複製モード', async () => {
     consoleLogs.push({ type: msg.type(), text: msg.text() })
   })
 
-  const { document: sourceDoc } = await seedEditableDocument(page)
+  // beforeAll の書類（2026-01-999）と番号が重複すると作成が拒否されるため別番号にする
+  const { document: sourceDoc } = await seedEditableDocument(page, '2026-01-998')
   const sourceId = sourceDoc.id
 
   await test.step(`/documents/new?from=${sourceId} に遷移`, async () => {
@@ -316,7 +317,7 @@ test('E2E-DOC-EDIT-004: 複製モード', async () => {
       .not.toBe('')
     const newNumber = (await numberInput.inputValue()).trim()
     expect(newNumber).not.toBe('')
-    expect(newNumber).not.toBe('2026-01-999')
+    expect(newNumber).not.toBe(sourceDoc.documentNumber)
   })
 })
 
