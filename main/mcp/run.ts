@@ -1,3 +1,4 @@
+import net from 'net'
 import { app } from 'electron'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { generatePdf } from '../pdf/generator'
@@ -14,13 +15,14 @@ export function redirectConsoleToStderr(): void {
   console.warn = toStderr
 }
 
-/** stdio で MCP サーバーを起動する。接続が閉じたらアプリを終了する */
-export async function startMcpServer(): Promise<void> {
+/** mcp-bridge.js が待ち受けるソケットに繋いで MCP サーバーを起動する。接続が閉じたらアプリを終了する */
+export async function startMcpServer(pipeName: string): Promise<void> {
+  const socket = net.connect(pipeName)
+  await new Promise<void>((resolve, reject) => {
+    socket.once('connect', resolve)
+    socket.once('error', reject)
+  })
+  socket.on('close', () => app.quit())
   const server = createMcpServer({ generatePdf }, app.getVersion())
-  const transport = new StdioServerTransport()
-  transport.onclose = () => app.quit()
-  // StdioServerTransport は stdin の終了を検知しないため、自分で見る
-  process.stdin.on('end', () => app.quit())
-  process.stdin.on('close', () => app.quit())
-  await server.connect(transport)
+  await server.connect(new StdioServerTransport(socket, socket))
 }

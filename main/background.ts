@@ -106,10 +106,15 @@ const registerAppProtocol = (): void => {
 
   if (isMcp) {
     // Menu / IPC / CSP / ウィンドウ / app:// は不要（PDF生成は data: URL の非表示ウィンドウ）
+    if (!config.mcpPipe) {
+      console.error('--mcp は mcp-bridge.js 経由で起動してください（設定 > データ の「AI連携」を参照）')
+      app.exit(1)
+      return
+    }
     try {
       initDatabase()
       await seedDefaultDocumentSettings()
-      await startMcpServer()
+      await startMcpServer(config.mcpPipe)
     } catch (e) {
       console.error('MCP サーバーの起動に失敗しました:', e)
       app.exit(1)

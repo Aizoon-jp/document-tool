@@ -42,7 +42,7 @@
 
 ## AI（Claude Code / Codex）から使う
 
-インストール済みのアプリを `--mcp` 付きで起動すると、画面を出さずに MCP サーバーとして動き、
+インストール済みのアプリを同梱の `mcp-bridge.js` 経由で起動すると、画面を出さずに MCP サーバーとして動き、
 Claude Code や Codex から「A社に請求書を作って」のように書類を作成できます。
 
 ### 登録（一度だけ）
@@ -52,10 +52,10 @@ Claude Code や Codex から「A社に請求書を作って」のように書類
 
 ```bash
 # Claude Code
-claude mcp add --scope user jimu-tool -- "<アプリの実行ファイル>" --mcp
+claude mcp add --scope user jimu-tool -e ELECTRON_RUN_AS_NODE=1 -- "<アプリの実行ファイル>" "<mcp-bridge.js>"
 
 # Codex
-codex mcp add jimu-tool -- "<アプリの実行ファイル>" --mcp
+codex mcp add jimu-tool --env ELECTRON_RUN_AS_NODE=1 -- "<アプリの実行ファイル>" "<mcp-bridge.js>"
 ```
 
 - **Mac**：先にアプリを普通に一度開き、「開発元を確認できません」の警告を許可してから登録してください。

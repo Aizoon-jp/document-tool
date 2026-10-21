@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { execFileSync } from 'child_process'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { closeElectron, launchElectron, type LaunchResult } from './helpers/electronApp'
 
 /**
- * `--mcp` モード: 実行ファイルを GUI なしの stdio MCP サーバーとして起動し、
+ * `--mcp` モード: mcp-bridge.js 経由で実行ファイルを GUI なしの stdio MCP サーバーとして起動し、
  * 書類作成からPDF生成までを MCP クライアント経由で行う。
  * 画面（GUI）を開いたままでも同じDBで動くことを確かめるため、GUI も同じデータフォルダで起動する。
  */
@@ -15,6 +16,26 @@ const projectRoot = path.resolve(__dirname, '..', '..')
 const electronBinary = require('electron') as unknown as string
 // CI ではインストーラーと同じ実行ファイル（パスに日本語を含む）を直接起動して確かめる
 const packagedExe = process.env.JIMU_E2E_MCP_EXE
+
+// 配布物の mcp-bridge.js は extraResources として実行ファイルの隣の resources に入る
+function resolveBridge(): string {
+  if (!packagedExe) return path.join(projectRoot, 'resources', 'mcp-bridge.js')
+  const dir =
+    process.platform === 'darwin'
+      ? path.join(packagedExe, '..', '..', 'Resources')
+      : path.join(packagedExe, '..', 'resources')
+  return path.resolve(dir, 'mcp-bridge.js')
+}
+
+// bridge が起動した Electron 子プロセス（--mcp-pipe に bridge の pid を含む）が残っていないか
+function hasElectronChild(bridgePid: number): boolean {
+  if (process.platform === 'win32') return false
+  try {
+    return execFileSync('pgrep', ['-f', `jimu-mcp-${bridgePid}-`]).length > 0
+  } catch {
+    return false
+  }
+}
 
 let gui: LaunchResult
 let transport: StdioClientTransport
@@ -27,7 +48,10 @@ interface ToolResult {
 
 async function call(name: string, args: Record<string, unknown> = {}) {
   const res = (await client.callTool({ name, arguments: args })) as ToolResult
-  return { isError: res.isError === true, json: () => JSON.parse(res.content[0].text) }
+  return {
+    isError: res.isError === true,
+    json: () => JSON.parse(res.content[0].text),
+  }
 }
 
 function isAlive(pid: number): boolean {
@@ -45,7 +69,11 @@ test.describe('MCP モード', () => {
     await gui.page.waitForFunction(() => typeof (window as unknown as { ipc?: unknown }).ipc !== 'undefined')
     // PDF には会社情報が必須。MCP には会社を登録するツールが無いため GUI 側の IPC で入れる
     await gui.page.evaluate(async () => {
-      const ipc = (window as unknown as { ipc: { invoke(c: string, ...a: unknown[]): Promise<unknown> } }).ipc
+      const ipc = (
+        window as unknown as {
+          ipc: { invoke(c: string, ...a: unknown[]): Promise<unknown> }
+        }
+      ).ipc
       await ipc.invoke('company:update', {
         name: 'テスト株式会社',
         tradeName: null,
@@ -68,8 +96,8 @@ test.describe('MCP モード', () => {
     transport = new StdioClientTransport({
       command: packagedExe ?? electronBinary,
       args: [
+        resolveBridge(),
         ...(packagedExe ? [] : [projectRoot]),
-        '--mcp',
         `--user-data-dir=${gui.userDataDir}`,
         '--no-sandbox',
         '--disable-gpu',
@@ -78,6 +106,7 @@ test.describe('MCP モード', () => {
       cwd: projectRoot,
       env: {
         ...(process.env as Record<string, string>),
+        ELECTRON_RUN_AS_NODE: '1',
         NODE_ENV: 'production',
         ELECTRON_DISABLE_SECURITY_WARNINGS: '1',
         JIMU_PDF_OUTPUT_DIR: path.join(gui.userDataDir, 'pdf'),
@@ -95,6 +124,7 @@ test.describe('MCP モード', () => {
     await client?.close().catch(() => undefined)
     if (pid) {
       await expect.poll(() => isAlive(pid), { timeout: 15000 }).toBe(false)
+      await expect.poll(() => hasElectronChild(pid), { timeout: 15000 }).toBe(false)
     }
     if (gui) await closeElectron(gui)
   })
@@ -135,7 +165,11 @@ test.describe('MCP モード', () => {
 
   test('GUI から見ても MCP で作った書類が同じDBにある', async () => {
     const docs = await gui.page.evaluate(async () => {
-      const ipc = (window as unknown as { ipc: { invoke<T>(c: string, ...a: unknown[]): Promise<T> } }).ipc
+      const ipc = (
+        window as unknown as {
+          ipc: { invoke<T>(c: string, ...a: unknown[]): Promise<T> }
+        }
+      ).ipc
       return ipc.invoke<{ clientName: string }[]>('documents:list')
     })
     expect(docs.map((d) => d.clientName)).toContain('MCP商事株式会社')

@@ -28,7 +28,7 @@ jobs:
       - name: Build (renderer)
         run: npm run build --if-present
 
-  # --mcp（stdio の MCP サーバー）は Windows の GUI 実行ファイルで stdio が通るかが要。
+  # --mcp（stdio の MCP サーバー）は mcp-bridge.js 経由。Windows でも通るかが要。
   # 開発用 Electron と、インストーラーと同じ実行ファイル（パスに日本語を含む）の両方で確かめる。
   mcp:
     strategy:
