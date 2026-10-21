@@ -23,11 +23,11 @@
 
 ## 2. インストール
 
-配布ページ: https://github.com/Aizoon-jp/document-tool/releases/tag/v0.1.5
+配布ページ: https://github.com/Aizoon-jp/document-tool/releases/latest
 
 ### Windows の場合
 
-1. `Setup.0.1.5.exe` をダウンロード
+1. `Setup.<バージョン>.exe` をダウンロード
 2. ダブルクリックしてインストーラーを起動
 3. 指示に従ってインストール（30 秒程度）
 4. スタートメニューに「事務ツール」が追加されます
@@ -35,8 +35,8 @@
 ### Mac の場合
 
 1. お使いの Mac に合わせてファイルをダウンロード
-   - Apple Silicon (M1 / M2 / M3 / M4): `事務ツール-0.1.5-arm64.dmg`
-   - Intel Mac: `事務ツール-0.1.5.dmg`
+   - Apple Silicon (M1 / M2 / M3 / M4): `-<バージョン>-arm64.dmg`
+   - Intel Mac: `-<バージョン>.dmg`
 2. ダウンロードした `.dmg` ファイルをダブルクリック
 3. 表示されたウィンドウで、事務ツールを「アプリケーション」フォルダにドラッグ
 4. アプリケーションフォルダから事務ツールを **右クリック → 開く**
@@ -46,8 +46,8 @@
 
 ### Linux の場合
 
-1. `事務ツール-0.1.5.AppImage` をダウンロード
-2. ファイルに実行権限を付与：`chmod +x 事務ツール-0.1.5.AppImage`
+1. `-<バージョン>.AppImage` をダウンロード
+2. ファイルに実行権限を付与：`chmod +x ./-<バージョン>.AppImage`
 3. ダブルクリックまたはターミナルから実行
 
 ---

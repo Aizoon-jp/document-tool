@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
@@ -8,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { getAppVersion } from '../services/api/app'
 
 type NavItem = {
   href: string
@@ -46,6 +48,11 @@ const NAV_ITEMS: NavItem[] = [
 
 export const Sidebar = () => {
   const router = useRouter()
+  const [version, setVersion] = useState<string | null>(null)
+
+  useEffect(() => {
+    getAppVersion().then(setVersion)
+  }, [])
 
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r bg-card">
@@ -73,7 +80,7 @@ export const Sidebar = () => {
         })}
       </nav>
       <div className="border-t p-2 text-xs text-muted-foreground">
-        v0.1.4 — ローカル版
+        {version && `v${version} — `}ローカル版
       </div>
     </aside>
   )
