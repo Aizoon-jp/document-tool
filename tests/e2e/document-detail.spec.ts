@@ -724,8 +724,19 @@ test('E2E-DOC-DETAIL-009: 情報カードのフォーマット検証', async () 
       return doc !== null
     }, candidateId)
     if (exists) return candidateId
-    // DETAIL-007 で削除された場合は、seed で投入した他の documents のうち
-    // 請求書 2026-04-003 を新たに作り直す
+    // DETAIL-007 で削除された場合は、残りの seed 書類を消してから作り直す
+    // （残したまま再シードすると書類番号が重複し documents:create が拒否する）
+    await page.evaluate(async (docIds) => {
+      type IpcBridge = {
+        invoke<T>(channel: string, ...args: unknown[]): Promise<T>
+      }
+      const ipc = (window as unknown as { ipc: IpcBridge }).ipc
+      for (const docId of docIds) {
+        if (await ipc.invoke<unknown | null>('documents:get', docId)) {
+          await ipc.invoke('documents:delete', docId)
+        }
+      }
+    }, Object.values(ids))
     const reSeeded = await seedHistoryData(page)
     seeded = reSeeded
     return getSeededDocumentIds(reSeeded).d001

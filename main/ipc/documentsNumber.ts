@@ -1,4 +1,4 @@
-import { and, desc, eq, like } from 'drizzle-orm'
+import { and, desc, eq, like, ne } from 'drizzle-orm'
 import type { DocumentType, NextDocumentNumber } from '../../renderer/types'
 import { getDatabase, schema } from '../db/client'
 
@@ -55,6 +55,42 @@ async function findLatestClientDocumentNumber(
   return rows[0]?.documentNumber ?? null
 }
 
+/**
+ * 書類番号が書式（例: INV-{YYYY}-{MM}-{seq:3}）から採番されたものか判定する。
+ * 書式どおりの番号は年月を含むため、末尾+1 で追従すると月をまたいで他社の番号と衝突する。
+ */
+export function matchesNumberFormat(format: string, docNumber: string): boolean {
+  const pattern = format
+    .split(/(\{YYYY\}|\{MM\}|\{seq:\d+\}|\{seq\})/)
+    .map((part) => {
+      if (part === '{YYYY}') return '\\d{4}'
+      if (part === '{MM}') return '\\d{2}'
+      if (part === '{seq}') return '\\d+'
+      const seq = part.match(/^\{seq:(\d+)\}$/)
+      if (seq) return `\\d{${seq[1]},}`
+      return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    })
+    .join('')
+  return new RegExp(`^${pattern}$`).test(docNumber)
+}
+
+export async function isDocumentNumberTaken(
+  docNumber: string,
+  excludeId?: string
+): Promise<boolean> {
+  const db = getDatabase()
+  const rows = await db
+    .select({ id: schema.documents.id })
+    .from(schema.documents)
+    .where(
+      excludeId
+        ? and(eq(schema.documents.documentNumber, docNumber), ne(schema.documents.id, excludeId))
+        : eq(schema.documents.documentNumber, docNumber)
+    )
+    .limit(1)
+  return rows.length > 0
+}
+
 function incrementTailNumber(docNumber: string): string | null {
   const match = docNumber.match(/^(.*?)(\d+)(\D*)$/)
   if (!match) return null
@@ -82,10 +118,13 @@ export async function getNextDocumentNumber(
   const { yyyy, mm } = yearMonth(now)
   const clientPrefix = await loadClientPrefix(clientId)
 
+  // 取引先の独自番号（書式外の番号）だけを末尾+1 で追従する。
+  // 書式どおりの番号や、追従先が既に使われている場合は全社連番に任せる。
   if (!clientPrefix && clientId) {
     const latest = await findLatestClientDocumentNumber(type, clientId)
-    const incremented = latest ? incrementTailNumber(latest) : null
-    if (incremented) {
+    const incremented =
+      latest && !matchesNumberFormat(baseFormat, latest) ? incrementTailNumber(latest) : null
+    if (incremented && !(await isDocumentNumberTaken(incremented))) {
       return {
         documentType: type,
         yearMonth: `${yyyy}-${mm}`,

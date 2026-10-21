@@ -180,6 +180,14 @@
 - 読み取り結果は**自動保存しない**。必ず確認ダイアログを経由する
 - 詳細: docs/requirements.md §7, §8
 
+## MCP モード（2026-10-20 追加）
+- `ELECTRON_RUN_AS_NODE=1 <実行ファイル> <mcp-bridge.js>` で GUI なしの stdio MCP サーバーになる（`main/mcp/`、`resources/mcp-bridge.js`）。登録コマンドは 設定 > データ の「AI連携」
+- **`--mcp` を直接起動する経路は無い**。Windows では Electron メインプロセスがパイプの stdin を読めず（electron/electron#4552）起動直後に終了するため、Node として動く bridge が stdio を受け持ち、Electron 子プロセスとはソケット（`--mcp-pipe=`）で繋ぐ。全OS共通の単一経路。bridge は extraResources で `resources/` に同梱
+- **stdout は JSON-RPC 専用**。MCP モードでは console.* を stderr へ流している。main 側で stdout に直接書く処理を足さない
+- PDF 生成の非表示ウィンドウを閉じるたびに `window-all-closed` が飛ぶので、MCP モードでは quit しない分岐がある。消さない
+- **削除系ツールは意図的に公開していない**（元に戻せないため）。足すならユーザー判断
+- Windows で stdio が通るかは CI の `mcp` ジョブ（windows-latest）でしか確かめられない
+
 ## CI/CD設定
 
 ### GitHub Actions（PR時に自動実行）
@@ -191,4 +199,4 @@
 
 ### リポジトリ
 - URL: https://github.com/Aizoon-jp/document-tool
-- 公開設定: Private
+- 公開設定: **Public（意図的・2026-09-28 決定）**。LP のダウンロードボタンが GitHub Release のアセットを直リンクしているため、Private にすると LP から落とせなくなる。非公開化するなら先にインストーラーを別ホストへ移す。コードは全公開なので push 前に秘密情報の混入を確認する

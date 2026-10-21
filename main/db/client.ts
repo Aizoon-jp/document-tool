@@ -16,6 +16,8 @@ export function initDatabase(): DrizzleDb {
 
   const dbPath = path.join(getDataDir(), 'data.db')
   sqlite = new Database(dbPath)
+  // GUI と MCP プロセスが同じDBを開きうるため、書き込み競合は即エラーにせず待つ
+  sqlite.pragma('busy_timeout = 5000')
   sqlite.pragma('journal_mode = WAL')
   sqlite.pragma('foreign_keys = ON')
 

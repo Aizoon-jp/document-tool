@@ -14,10 +14,17 @@ import { getDatabase, schema } from '../db/client'
 import { generateId } from '../helpers/id'
 import { deserializeOptions, nowIso, serializeOptions } from '../helpers/serialize'
 import { calculateTotals } from './documentsCalc'
-import { getNextDocumentNumber } from './documentsNumber'
+import { getNextDocumentNumber, isDocumentNumberTaken } from './documentsNumber'
 
 type DocRow = typeof schema.documents.$inferSelect
 type LineRow = typeof schema.documentLines.$inferSelect
+
+// PDF は書類番号をファイル名にするため、番号の重複は別の書類のPDFを上書きする。
+async function assertDocumentNumberAvailable(docNumber: string, excludeId?: string) {
+  if (await isDocumentNumberTaken(docNumber, excludeId)) {
+    throw new Error(`書類番号「${docNumber}」は既に別の書類で使われています`)
+  }
+}
 
 function toDocument(row: DocRow, clientName: string): Document {
   return {
@@ -203,6 +210,7 @@ export async function getDocumentLines(
 }
 
 export async function createDocument(draft: DocumentDraft): Promise<Document> {
+  await assertDocumentNumberAvailable(draft.documentNumber)
   const db = getDatabase()
   const totals = calculateTotals(draft)
   const id = generateId()
@@ -264,6 +272,7 @@ export async function updateDocument(
   id: string,
   draft: DocumentDraft
 ): Promise<Document> {
+  await assertDocumentNumberAvailable(draft.documentNumber, id)
   const db = getDatabase()
   const totals = calculateTotals(draft)
   const now = nowIso()

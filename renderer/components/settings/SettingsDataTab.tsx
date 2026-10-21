@@ -22,6 +22,7 @@ import {
   useClearApiKey,
   useSetApiKey,
 } from '../../hooks/useBusinessCard'
+import { SettingsMcpCard } from './SettingsMcpCard'
 import type { DataDirStatus } from '../../types'
 
 export const SettingsDataTab = () => {
@@ -194,6 +195,8 @@ export const SettingsDataTab = () => {
       </Card>
 
       <ApiKeyCard />
+
+      <SettingsMcpCard />
     </div>
   )
 }

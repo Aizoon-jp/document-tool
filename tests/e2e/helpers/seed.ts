@@ -568,7 +568,8 @@ export async function seedDashboardTestData(
  * 戻り値の `document` は `documents:create` のレスポンス（id 確定後の Document）。
  */
 export async function seedEditableDocument(
-  page: Page
+  page: Page,
+  documentNumber = '2026-01-999'
 ): Promise<{ client: Client; document: Document }> {
   await page.waitForFunction(
     () => typeof (window as unknown as { ipc?: unknown }).ipc !== 'undefined',
@@ -576,7 +577,7 @@ export async function seedEditableDocument(
     { timeout: 30000 }
   )
 
-  return page.evaluate(async () => {
+  return page.evaluate(async (documentNumber) => {
     type IpcBridge = {
       invoke<T>(channel: string, ...args: unknown[]): Promise<T>
     }
@@ -598,7 +599,7 @@ export async function seedEditableDocument(
 
     const draft: DocumentDraft = {
       documentType: 'invoice',
-      documentNumber: '2026-01-999',
+      documentNumber,
       issueDate: '2026-01-15',
       clientId: client.id,
       detailMode: 'direct',
@@ -627,5 +628,5 @@ export async function seedEditableDocument(
     const document = await ipc.invoke<Document>('documents:create', draft)
 
     return { client, document }
-  })
+  }, documentNumber)
 }

@@ -40,7 +40,7 @@ afterEach(() => {
 
 describe('documents:next-number', () => {
   it('同月の書類ゼロなら seq=1 を返す', async () => {
-    const result = await getNextDocumentNumber('invoice', new Date('2026-04-20'))
+    const result = await getNextDocumentNumber('invoice', undefined, new Date('2026-04-20'))
     expect(result.formatted).toBe('INV-2026-04-001')
     expect(result.sequence).toBe(1)
     expect(result.yearMonth).toBe('2026-04')
@@ -57,7 +57,7 @@ describe('documents:next-number', () => {
       options: '{}',
       detailMode: 'direct',
     })
-    const result = await getNextDocumentNumber('invoice', new Date('2026-04-20'))
+    const result = await getNextDocumentNumber('invoice', undefined, new Date('2026-04-20'))
     expect(result.formatted).toBe('INV-2026-04-006')
     expect(result.sequence).toBe(6)
   })
@@ -73,9 +73,7 @@ describe('documents:next-number', () => {
       options: '{}',
       detailMode: 'direct',
     })
-    const receipt = await getNextDocumentNumber(
-      'receipt',
-      new Date('2026-04-20')
+    const receipt = await getNextDocumentNumber('receipt', undefined, new Date('2026-04-20')
     )
     expect(receipt.formatted).toBe('RCP-2026-04-001')
   })
@@ -84,7 +82,7 @@ describe('documents:next-number', () => {
     const ctx = createTestDb()
     setDatabaseForTesting(ctx.db)
     await expect(
-      getNextDocumentNumber('invoice', new Date('2026-04-20'))
+      getNextDocumentNumber('invoice', undefined, new Date('2026-04-20'))
     ).rejects.toThrow(/未登録/)
     ctx.close()
   })
@@ -100,7 +98,7 @@ describe('documents:next-number', () => {
       options: '{}',
       detailMode: 'direct',
     })
-    const result = await getNextDocumentNumber('invoice', new Date('2026-04-01'))
+    const result = await getNextDocumentNumber('invoice', undefined, new Date('2026-04-01'))
     expect(result.formatted).toBe('INV-2026-04-001')
   })
 
@@ -117,7 +115,62 @@ describe('documents:next-number', () => {
       },
       defaultRemarks: null,
     })
-    const result = await getNextDocumentNumber('invoice', new Date('2026-04-20'))
+    const result = await getNextDocumentNumber('invoice', undefined, new Date('2026-04-20'))
     expect(result.formatted).toBe('TEST-202604-0001')
+  })
+})
+
+// 2026-10-20 の実害: 前月に INV-2026-09-001 を発行した取引先で翌月に採番すると
+// 末尾+1 で INV-2026-09-002 になり、別の取引先の書類と番号が重複してPDFまで上書きされた。
+describe('documents:next-number 取引先の番号追従', () => {
+  async function insertDoc(id: string, documentNumber: string, ownerId: string) {
+    const { documents } = await import('../../main/db/schema')
+    await db.insert(documents).values({
+      id,
+      documentType: 'invoice',
+      documentNumber,
+      issueDate: '2026-09-20',
+      clientId: ownerId,
+      options: '{}',
+      detailMode: 'direct',
+    })
+  }
+
+  async function createOtherClient(): Promise<string> {
+    const other = await createClient({
+      name: '他社',
+      honorific: '御中',
+      postalCode: null,
+      address: null,
+      tel: null,
+      contactPerson: null,
+      contactDepartment: null,
+      paymentTerms: null,
+      defaultTaxCategory: 'taxable_10',
+      notes: null,
+    })
+    return other.id
+  }
+
+  it('前月の書式番号は追従せず、今月の全社連番になる', async () => {
+    const otherId = await createOtherClient()
+    await insertDoc('d1', 'INV-2026-09-001', clientId)
+    await insertDoc('d2', 'INV-2026-09-002', otherId)
+    const result = await getNextDocumentNumber('invoice', clientId, new Date('2026-10-20'))
+    expect(result.formatted).toBe('INV-2026-10-001')
+  })
+
+  it('取引先の独自番号は末尾+1 で追従する', async () => {
+    await insertDoc('d1', 'KIBA-012', clientId)
+    const result = await getNextDocumentNumber('invoice', clientId, new Date('2026-10-20'))
+    expect(result.formatted).toBe('KIBA-013')
+  })
+
+  it('追従先が他社で使用済みなら全社連番に切り替える', async () => {
+    const otherId = await createOtherClient()
+    await insertDoc('d1', 'SHARED-001', clientId)
+    await insertDoc('d2', 'SHARED-002', otherId)
+    const result = await getNextDocumentNumber('invoice', clientId, new Date('2026-10-20'))
+    expect(result.formatted).toBe('INV-2026-10-001')
   })
 })

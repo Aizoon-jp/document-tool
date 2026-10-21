@@ -235,3 +235,23 @@ describe('documents:list / search / summary', () => {
     expect(mar.breakdown.invoice).toBe(1)
   })
 })
+
+// PDF は書類番号をファイル名にするため、番号の重複は別の書類のPDFを上書きする。
+describe('書類番号の重複防止', () => {
+  it('使用済みの番号では作成できない', async () => {
+    await createDocument(draft({ documentNumber: 'INV-2026-04-001' }))
+    await expect(
+      createDocument(draft({ documentNumber: 'INV-2026-04-001' }))
+    ).rejects.toThrow('書類番号「INV-2026-04-001」は既に別の書類で使われています')
+  })
+
+  it('他の書類の番号には変更できないが、同じ番号での差し替えはできる', async () => {
+    await createDocument(draft({ documentNumber: 'INV-2026-04-001' }))
+    const other = await createDocument(draft({ documentNumber: 'INV-2026-04-002' }))
+    await expect(
+      updateDocument(other.id, draft({ documentNumber: 'INV-2026-04-001' }))
+    ).rejects.toThrow('書類番号「INV-2026-04-001」は既に別の書類で使われています')
+    const reissued = await updateDocument(other.id, draft({ documentNumber: 'INV-2026-04-002' }))
+    expect(reissued.documentNumber).toBe('INV-2026-04-002')
+  })
+})
