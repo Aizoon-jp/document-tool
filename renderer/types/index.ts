@@ -210,6 +210,7 @@ export interface DocumentSort {
 
 export const API_PATHS = {
   app: {
+    getVersion: 'app:getVersion',
     mcpSetup: 'app:mcp-setup',
   },
   documents: {
