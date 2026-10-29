@@ -19,9 +19,11 @@ git push origin v0.1.0
 
 | ランナー | 生成物 | 配置先 |
 |---------|-------|--------|
-| windows-latest | `事務ツール Setup X.Y.Z.exe`（NSIS） | GitHub Release |
-| macos-latest | `事務ツール-X.Y.Z.dmg`（未署名） | GitHub Release |
-| ubuntu-latest | `事務ツール-X.Y.Z.AppImage` | GitHub Release |
+| windows-latest | `jimu-tool-setup-X.Y.Z.exe`（NSIS） | GitHub Release |
+| macos-latest | `jimu-tool-X.Y.Z-arm64.dmg` / `jimu-tool-X.Y.Z-x64.dmg`（ad-hoc 署名） | GitHub Release |
+| ubuntu-latest | `jimu-tool-X.Y.Z.AppImage` | GitHub Release |
+
+ファイル名は `electron-builder.yml` の `artifactName` で英字にしている（日本語の productName は Release のアセット名から消えるため）。
 
 完了後、`https://github.com/Aizoon-jp/document-tool/releases/tag/vX.Y.Z` に各プラットフォーム向けインストーラーが揃います。
 
@@ -35,13 +37,13 @@ electron-builder の設定（`electron-builder.yml`）で以下を同梱：
 
 ## 署名について
 
-現状 **macOS は未署名** でビルドしています（`CSC_IDENTITY_AUTO_DISCOVERY: false`）。
+macOS は **Developer ID 署名・公証なし** で、`afterPack`（`scripts/adhocSignMac.js`）が .app 全体を ad-hoc 署名で封印しています（`CSC_IDENTITY_AUTO_DISCOVERY: false`）。
 
-- 配布時、macOS では「開発元が未確認」警告が出る
-- エンドユーザーは **右クリック → 開く** で起動可能
-- 将来 Apple Developer Program 登録後、同workflowで署名・公証（notarization）を追加
+- 封印しないと、ブラウザでダウンロードした Mac で「壊れているため開けません」と出て開けない（v0.1.9 まで）
+- 封印すると「開いていません」の警告になり、システム設定 →「プライバシーとセキュリティ」→「このまま開く」で起動できる
+- Apple Developer Program 登録後は、Developer ID で署名・公証し、このフックを外す
 
-Windows も未署名。SmartScreen警告が出る可能性あり。EV証明書購入で解消可能。
+Windows も未署名。SmartScreen 警告が出る（「詳細情報」→「実行」で起動できる）。EV 証明書でも警告は即時には消えない（Microsoft 公式）。解消するなら Microsoft Artifact Signing（日本の法人は対象）
 
 ## ネイティブモジュール
 
