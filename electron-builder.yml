@@ -16,6 +16,8 @@ extraResources:
       - "**/*"
   - from: resources/mcp-bridge.js
     to: mcp-bridge.js
+# Developer ID の公証を始めるまでは ad-hoc 署名で .app 全体を封印する（scripts/adhocSignMac.js）
+afterPack: scripts/adhocSignMac.js
 asarUnpack:
   - "**/node_modules/better-sqlite3/**/*"
   - "**/node_modules/bindings/**/*"
@@ -23,15 +25,19 @@ asarUnpack:
 win:
   target:
     - nsis
+  # 日本語の productName は GitHub Release のアセット名から消える（「-0.1.9.dmg」になる）ため英字で出す
+  artifactName: jimu-tool-setup-${version}.${ext}
   icon: resources/icon.ico
 mac:
   target:
     - dmg
+  artifactName: jimu-tool-${version}-${arch}.${ext}
   icon: resources/icon.icns
   category: public.app-category.business
 linux:
   target:
     - AppImage
+  artifactName: jimu-tool-${version}.${ext}
   category: Office
 nsis:
   oneClick: false
